@@ -11,6 +11,7 @@ import com.alfa.shakegroan.data.CustomSound
 import com.alfa.shakegroan.data.PickedSound
 import com.alfa.shakegroan.data.PlaybackMode
 import com.alfa.shakegroan.service.BackgroundMonitorService
+import com.alfa.shakegroan.widget.FallOuchWidgetUpdater
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -121,6 +122,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val updatedSettings = current.settings.transform()
             repository.save(updatedSettings)
             syncBackgroundService(updatedSettings)
+            FallOuchWidgetUpdater.refreshAll(getApplication())
             current.copy(settings = updatedSettings)
         }
     }

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Fall Ouch!</string>
+    <string name="widget_description">Стеклянный виджет Fall Ouch! для быстрого включения мониторинга и просмотра текущего звукового режима</string>
 </resources>

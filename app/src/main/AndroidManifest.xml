@@ -13,6 +13,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ShakeGroan">
+        <receiver
+            android:name=".widget.FallOuchWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.alfa.shakegroan.widget.action.TOGGLE_MONITORING" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/fall_ouch_widget_info" />
+        </receiver>
         <service
             android:name=".service.BackgroundMonitorService"
             android:exported="false"

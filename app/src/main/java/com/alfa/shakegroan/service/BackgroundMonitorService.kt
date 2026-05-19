@@ -20,6 +20,7 @@ import com.alfa.shakegroan.data.AppSettingsRepository
 import com.alfa.shakegroan.data.toDetectorConfig
 import com.alfa.shakegroan.motion.MotionEventType
 import com.alfa.shakegroan.motion.MotionSensorMonitor
+import com.alfa.shakegroan.widget.FallOuchWidgetUpdater
 
 class BackgroundMonitorService : Service() {
 
@@ -63,6 +64,7 @@ class BackgroundMonitorService : Service() {
 
         startInForeground("Фоновый режим активен: приложение будет реагировать даже после сворачивания")
         sensorMonitor.start(currentSettings.toDetectorConfig())
+        FallOuchWidgetUpdater.refreshAll(this)
         broadcastUpdate(
             statusMessage = "Фоновый режим активен",
             isArmed = true,
@@ -111,6 +113,7 @@ class BackgroundMonitorService : Service() {
             statusMessage = "Фоновый режим выключен",
             isArmed = false,
         )
+        FallOuchWidgetUpdater.refreshAll(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
