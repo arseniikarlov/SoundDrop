@@ -5,10 +5,11 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.speech.tts.TextToSpeech
 import com.alfa.shakegroan.data.AppSettings
-import com.alfa.shakegroan.data.BuiltInPack
-import com.alfa.shakegroan.data.PlaybackMode
+import com.alfa.shakegroan.data.SoundAssignment
+import com.alfa.shakegroan.data.SoundSourceType
+import com.alfa.shakegroan.data.soundFor
+import com.alfa.shakegroan.motion.MotionEventType
 import java.util.Locale
-import kotlin.random.Random
 
 class SoundPlayer(
     context: Context,
@@ -41,13 +42,8 @@ class SoundPlayer(
         }
     }
 
-    fun play(settings: AppSettings): PlaybackSource {
-        val customUri = selectCustomUri(settings)
-        if (customUri != null && playCustomSound(customUri, settings.playbackVolume)) {
-            return PlaybackSource.CUSTOM
-        }
-
-        return playBuiltInSound(settings)
+    fun play(settings: AppSettings, eventType: MotionEventType): PlaybackSource {
+        return playAssignment(settings.soundFor(eventType), settings.playbackVolume)
     }
 
     fun release() {
@@ -58,12 +54,38 @@ class SoundPlayer(
         textToSpeech = null
     }
 
-    private fun selectCustomUri(settings: AppSettings): String? = when (settings.playbackMode) {
-        PlaybackMode.BUILT_IN -> null
-        PlaybackMode.CUSTOM_ONLY -> settings.customSounds.randomOrNull()?.uri
-        PlaybackMode.MIXED -> {
-            val customUri = settings.customSounds.randomOrNull()?.uri
-            if (customUri != null && Random.nextBoolean()) customUri else null
+    fun preview(assignment: SoundAssignment, volume: Float): PlaybackSource {
+        return playAssignment(assignment, volume)
+    }
+
+    private fun playAssignment(
+        assignment: SoundAssignment,
+        volume: Float,
+    ): PlaybackSource = when (assignment.sourceType) {
+        SoundSourceType.CUSTOM -> {
+            if (playCustomSound(assignment.reference, volume)) {
+                PlaybackSource.CUSTOM
+            } else {
+                val fallback = BuiltInSoundCatalog.defaultShakeAssignment()
+                playCleanBundledSound(fallback.reference, volume)
+                PlaybackSource.BUILT_IN_CLEAN
+            }
+        }
+
+        SoundSourceType.BUILT_IN_PROFANE -> {
+            if (playProfaneSpeech()) {
+                PlaybackSource.BUILT_IN_PROFANE
+            } else {
+                onInfo("Матный TTS не готов, включаю встроенный не-матный набор")
+                val fallback = BuiltInSoundCatalog.defaultShakeAssignment()
+                playCleanBundledSound(fallback.reference, volume)
+                PlaybackSource.BUILT_IN_CLEAN
+            }
+        }
+
+        SoundSourceType.BUILT_IN_CLEAN -> {
+            playCleanBundledSound(assignment.reference, volume)
+            PlaybackSource.BUILT_IN_CLEAN
         }
     }
 
@@ -91,27 +113,11 @@ class SoundPlayer(
         }
     }
 
-    private fun playBuiltInSound(settings: AppSettings): PlaybackSource {
-        return when (settings.builtInPack) {
-            BuiltInPack.CLEAN -> {
-                playBundledCleanSound(settings.playbackVolume)
-                PlaybackSource.BUILT_IN_CLEAN
-            }
-
-            BuiltInPack.PROFANE -> {
-                if (playProfaneSpeech()) {
-                    PlaybackSource.BUILT_IN_PROFANE
-                } else {
-                    onInfo("Матный TTS не готов, включаю встроенный не-матный набор")
-                    playBundledCleanSound(settings.playbackVolume)
-                    PlaybackSource.BUILT_IN_CLEAN
-                }
-            }
-        }
-    }
-
-    private fun playBundledCleanSound(volume: Float) {
-        val sound = BuiltInSoundCatalog.cleanSounds.randomOrNull()
+    private fun playCleanBundledSound(
+        soundId: String,
+        volume: Float,
+    ) {
+        val sound = BuiltInSoundCatalog.cleanSoundById(soundId)
         if (sound == null) {
             onInfo("Не найден ни один встроенный не-матный файл")
             return

@@ -2,14 +2,17 @@ package com.alfa.shakegroan.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import com.alfa.shakegroan.audio.BuiltInSoundCatalog
 import com.alfa.shakegroan.audio.PlaybackSource
 import com.alfa.shakegroan.audio.SoundPlayer
 import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.AppSettingsRepository
-import com.alfa.shakegroan.data.BuiltInPack
+import com.alfa.shakegroan.data.AssignTarget
 import com.alfa.shakegroan.data.CustomSound
 import com.alfa.shakegroan.data.PickedSound
-import com.alfa.shakegroan.data.PlaybackMode
+import com.alfa.shakegroan.data.SoundAssignment
+import com.alfa.shakegroan.data.SoundSourceType
+import com.alfa.shakegroan.motion.MotionEventType
 import com.alfa.shakegroan.service.BackgroundMonitorService
 import com.alfa.shakegroan.widget.FallOuchWidgetUpdater
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +23,7 @@ import kotlinx.coroutines.flow.update
 data class MainUiState(
     val settings: AppSettings = AppSettings(),
     val lastTriggerLabel: String = "Пока тишина",
-    val statusMessage: String = "Fall Ouch! готов: по умолчанию включен не-матный набор, но режим можно переключить",
+    val statusMessage: String = "Fall Ouch! готов: теперь можно ставить разные звуки на падение и тряску",
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -51,10 +54,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setVolume(value: Float) = updateSettings { copy(playbackVolume = value) }
 
-    fun setPlaybackMode(value: PlaybackMode) = updateSettings { copy(playbackMode = value) }
-
-    fun setBuiltInPack(value: BuiltInPack) = updateSettings { copy(builtInPack = value) }
-
     fun addCustomSounds(newSounds: List<PickedSound>) {
         val uniqueByUri = (_uiState.value.settings.customSounds + newSounds.map {
             CustomSound(uri = it.uri, displayName = it.displayName)
@@ -70,17 +69,76 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearCustomSounds() {
-        updateSettings { copy(customSounds = emptyList()) }
+        updateSettings {
+            val fallbackShake = if (shakeSound.sourceType == SoundSourceType.CUSTOM) {
+                BuiltInSoundCatalog.defaultShakeAssignment()
+            } else {
+                shakeSound
+            }
+            val fallbackThrow = if (throwSound.sourceType == SoundSourceType.CUSTOM) {
+                BuiltInSoundCatalog.defaultThrowAssignment()
+            } else {
+                throwSound
+            }
+            copy(
+                customSounds = emptyList(),
+                shakeSound = fallbackShake,
+                throwSound = fallbackThrow,
+            )
+        }
         _uiState.update { current ->
-            current.copy(statusMessage = "Свои звуки очищены")
+            current.copy(statusMessage = "Мои звуки очищены, назначения с файлами сброшены на встроенные")
         }
     }
 
-    fun testSound() {
-        val source = soundPlayer.play(_uiState.value.settings)
+    fun assignSound(
+        assignment: SoundAssignment,
+        target: AssignTarget,
+    ) {
+        updateSettings {
+            when (target) {
+                AssignTarget.SHAKE -> copy(shakeSound = assignment)
+                AssignTarget.THROW -> copy(throwSound = assignment)
+                AssignTarget.BOTH -> copy(
+                    shakeSound = assignment,
+                    throwSound = assignment,
+                )
+            }
+        }
         _uiState.update { current ->
             current.copy(
-                statusMessage = playbackMessage("Тест", source)
+                statusMessage = when (target) {
+                    AssignTarget.SHAKE -> "Поставил `${assignment.displayName}` на тряску"
+                    AssignTarget.THROW -> "Поставил `${assignment.displayName}` на падение"
+                    AssignTarget.BOTH -> "Поставил `${assignment.displayName}` и на тряску, и на падение"
+                }
+            )
+        }
+    }
+
+    fun previewSound(assignment: SoundAssignment) {
+        val source = soundPlayer.preview(assignment, _uiState.value.settings.playbackVolume)
+        _uiState.update { current ->
+            current.copy(
+                statusMessage = playbackMessage("Предпрослушка", source, assignment.displayName)
+            )
+        }
+    }
+
+    fun previewAssignedSound(target: AssignTarget) {
+        val settings = _uiState.value.settings
+        val assignment = when (target) {
+            AssignTarget.SHAKE -> settings.shakeSound
+            AssignTarget.THROW -> settings.throwSound
+            AssignTarget.BOTH -> settings.shakeSound
+        }
+        previewSound(assignment)
+    }
+
+    fun announceCreateSoon() {
+        _uiState.update { current ->
+            current.copy(
+                statusMessage = "Создание звука из видео и обрезка фрагмента будут следующим шагом"
             )
         }
     }
@@ -103,11 +161,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun onMotionDetectedLocally() {
-        val source = soundPlayer.play(_uiState.value.settings)
+    fun onMotionDetectedLocally(eventType: MotionEventType) {
+        val settings = _uiState.value.settings
+        val assignment = when (eventType) {
+            MotionEventType.SHAKE -> settings.shakeSound
+            MotionEventType.THROW -> settings.throwSound
+        }
+        val source = soundPlayer.play(settings, eventType)
         _uiState.update { current ->
             current.copy(
-                statusMessage = playbackMessage("Локально сработал", source)
+                statusMessage = playbackMessage("Локально сработал", source, assignment.displayName)
             )
         }
     }
@@ -135,9 +198,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun playbackMessage(prefix: String, source: PlaybackSource): String = when (source) {
-        PlaybackSource.BUILT_IN_CLEAN -> "$prefix встроенный не-матный звук"
-        PlaybackSource.BUILT_IN_PROFANE -> "$prefix встроенный матный режим"
-        PlaybackSource.CUSTOM -> "$prefix пользовательский звук"
+    private fun playbackMessage(
+        prefix: String,
+        source: PlaybackSource,
+        displayName: String,
+    ): String = when (source) {
+        PlaybackSource.BUILT_IN_CLEAN -> "$prefix: встроенный файл `$displayName`"
+        PlaybackSource.BUILT_IN_PROFANE -> "$prefix: матный режим `$displayName`"
+        PlaybackSource.CUSTOM -> "$prefix: пользовательский звук `$displayName`"
     }
 }

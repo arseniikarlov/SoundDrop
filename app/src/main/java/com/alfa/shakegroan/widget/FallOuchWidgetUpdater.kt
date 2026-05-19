@@ -8,11 +8,8 @@ import android.content.Intent
 import android.widget.RemoteViews
 import com.alfa.shakegroan.MainActivity
 import com.alfa.shakegroan.R
-import com.alfa.shakegroan.audio.BuiltInSoundCatalog
 import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.AppSettingsRepository
-import com.alfa.shakegroan.data.BuiltInPack
-import com.alfa.shakegroan.data.PlaybackMode
 
 object FallOuchWidgetUpdater {
 
@@ -60,8 +57,8 @@ object FallOuchWidgetUpdater {
             R.id.widget_status_subtitle,
             if (isArmed) "Работает даже в фоне, пока висит уведомление" else "Нажми кнопку справа, чтобы быстро включить мониторинг"
         )
-        views.setTextViewText(R.id.widget_mode_title, playbackModeLabel(settings.playbackMode))
-        views.setTextViewText(R.id.widget_mode_detail, playbackModeDetail(settings))
+        views.setTextViewText(R.id.widget_mode_title, "Тряска: ${settings.shakeSound.displayName}")
+        views.setTextViewText(R.id.widget_mode_detail, "Падение: ${settings.throwSound.displayName}")
         views.setTextViewText(R.id.widget_library_detail, librarySummary(settings))
         views.setTextViewText(R.id.widget_toggle_button, if (isArmed) "Выключить" else "Включить")
 
@@ -90,18 +87,6 @@ object FallOuchWidgetUpdater {
         return views
     }
 
-    private fun playbackModeLabel(mode: PlaybackMode): String = when (mode) {
-        PlaybackMode.BUILT_IN -> "Режим: Встроенный"
-        PlaybackMode.CUSTOM_ONLY -> "Режим: Только свои"
-        PlaybackMode.MIXED -> "Режим: Смешанный"
-    }
-
-    private fun playbackModeDetail(settings: AppSettings): String = when (settings.playbackMode) {
-        PlaybackMode.BUILT_IN -> builtInPackSummary(settings.builtInPack)
-        PlaybackMode.CUSTOM_ONLY -> "Только пользовательские аудиофайлы"
-        PlaybackMode.MIXED -> "Свои файлы + ${BuiltInSoundCatalog.labelFor(settings.builtInPack).lowercase()}"
-    }
-
     private fun librarySummary(settings: AppSettings): String {
         val customCount = settings.customSounds.size
         val customLabel = when {
@@ -110,12 +95,7 @@ object FallOuchWidgetUpdater {
             customCount in 2..4 -> "$customCount своих файла"
             else -> "$customCount своих файлов"
         }
-        return "Библиотека: ${BuiltInSoundCatalog.cleanSounds.size} встроенных, $customLabel"
-    }
-
-    private fun builtInPackSummary(pack: BuiltInPack): String = when (pack) {
-        BuiltInPack.CLEAN -> "Встроенный пакет: Не мат"
-        BuiltInPack.PROFANE -> "Встроенный пакет: Мат"
+        return "Мои звуки: $customLabel"
     }
 
 }

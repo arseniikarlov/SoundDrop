@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.alfa.shakegroan.MainActivity
 import com.alfa.shakegroan.R
+import com.alfa.shakegroan.audio.BuiltInSoundCatalog
 import com.alfa.shakegroan.audio.PlaybackSource
 import com.alfa.shakegroan.audio.SoundPlayer
 import com.alfa.shakegroan.data.AppSettings
@@ -82,15 +83,19 @@ class BackgroundMonitorService : Service() {
 
     private fun handleMotionEvent(eventType: MotionEventType) {
         currentSettings = repository.load()
-        val source = soundPlayer.play(currentSettings)
+        val assignment = when (eventType) {
+            MotionEventType.SHAKE -> currentSettings.shakeSound
+            MotionEventType.THROW -> currentSettings.throwSound
+        }
+        val source = soundPlayer.play(currentSettings, eventType)
         lastTriggerLabel = when (eventType) {
-            MotionEventType.SHAKE -> "Последнее событие: встряска"
-            MotionEventType.THROW -> "Последнее событие: подброс/пойман"
+            MotionEventType.SHAKE -> "Последнее событие: тряска -> ${assignment.displayName}"
+            MotionEventType.THROW -> "Последнее событие: падение -> ${assignment.displayName}"
         }
         val statusMessage = when (source) {
-            PlaybackSource.BUILT_IN_CLEAN -> "Сработал встроенный не-матный звук"
-            PlaybackSource.BUILT_IN_PROFANE -> "Сработал встроенный матный режим"
-            PlaybackSource.CUSTOM -> "Сработал пользовательский звук"
+            PlaybackSource.BUILT_IN_CLEAN -> "Сработал встроенный файл ${BuiltInSoundCatalog.labelFor(assignment)}"
+            PlaybackSource.BUILT_IN_PROFANE -> "Сработал матный режим ${BuiltInSoundCatalog.labelFor(assignment)}"
+            PlaybackSource.CUSTOM -> "Сработал пользовательский звук ${assignment.displayName}"
         }
 
         broadcastUpdate(

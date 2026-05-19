@@ -1,21 +1,25 @@
 package com.alfa.shakegroan.audio
 
 import com.alfa.shakegroan.R
-import com.alfa.shakegroan.data.BuiltInPack
+import com.alfa.shakegroan.data.CustomSound
+import com.alfa.shakegroan.data.SoundAssignment
+import com.alfa.shakegroan.data.SoundSourceType
 
 data class BundledSound(
+    val id: String,
     val resId: Int,
     val displayName: String,
+    val isPopular: Boolean = false,
 )
 
 object BuiltInSoundCatalog {
     val cleanSounds = listOf(
-        BundledSound(R.raw.clean_doh1, "doh1.mp3"),
-        BundledSound(R.raw.clean_untitled2, "untitled2.mp3"),
-        BundledSound(R.raw.clean_tom_scream, "tom_scream.mp3"),
-        BundledSound(R.raw.clean_o_kurwa, "o-kurwa.mp3"),
-        BundledSound(R.raw.clean_sdfds, "sdfds.mp3"),
-        BundledSound(R.raw.clean_gta_wasted_5, "5-gta-wasted.mp3"),
+        BundledSound("clean_doh1", R.raw.clean_doh1, "doh1.mp3", isPopular = true),
+        BundledSound("clean_untitled2", R.raw.clean_untitled2, "untitled2.mp3"),
+        BundledSound("clean_tom_scream", R.raw.clean_tom_scream, "tom_scream.mp3", isPopular = true),
+        BundledSound("clean_o_kurwa", R.raw.clean_o_kurwa, "o-kurwa.mp3"),
+        BundledSound("clean_sdfds", R.raw.clean_sdfds, "sdfds.mp3"),
+        BundledSound("clean_gta_wasted_5", R.raw.clean_gta_wasted_5, "5-gta-wasted.mp3", isPopular = true),
     )
 
     val profanePhrases = listOf(
@@ -26,18 +30,42 @@ object BuiltInSoundCatalog {
         "сука, бля!",
     )
 
-    fun previewFor(pack: BuiltInPack): String = when (pack) {
-        BuiltInPack.CLEAN -> "Набор без мата: ${cleanSounds.size} файлов"
-        BuiltInPack.PROFANE -> profanePhrases.first()
+    const val PROFANE_SOUND_ID = "profane_tts"
+    const val PROFANE_SOUND_NAME = "Русский мат TTS"
+
+    fun cleanSoundById(id: String): BundledSound? = cleanSounds.firstOrNull { it.id == id }
+
+    fun defaultShakeAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_doh1" })
+
+    fun defaultThrowAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_gta_wasted_5" })
+
+    fun profaneAssignment(): SoundAssignment = SoundAssignment(
+        sourceType = SoundSourceType.BUILT_IN_PROFANE,
+        reference = PROFANE_SOUND_ID,
+        displayName = PROFANE_SOUND_NAME,
+    )
+
+    fun assignmentFor(sound: BundledSound): SoundAssignment = SoundAssignment(
+        sourceType = SoundSourceType.BUILT_IN_CLEAN,
+        reference = sound.id,
+        displayName = sound.displayName,
+    )
+
+    fun assignmentFor(sound: CustomSound): SoundAssignment = SoundAssignment(
+        sourceType = SoundSourceType.CUSTOM,
+        reference = sound.uri,
+        displayName = sound.displayName,
+    )
+
+    fun labelFor(assignment: SoundAssignment): String = when (assignment.sourceType) {
+        SoundSourceType.BUILT_IN_CLEAN -> cleanSoundById(assignment.reference)?.displayName ?: assignment.displayName
+        SoundSourceType.BUILT_IN_PROFANE -> PROFANE_SOUND_NAME
+        SoundSourceType.CUSTOM -> assignment.displayName
     }
 
-    fun labelFor(pack: BuiltInPack): String = when (pack) {
-        BuiltInPack.CLEAN -> "Не мат"
-        BuiltInPack.PROFANE -> "Мат"
-    }
-
-    fun detailFor(pack: BuiltInPack): String = when (pack) {
-        BuiltInPack.CLEAN -> "Встроенные MP3 из пакета"
-        BuiltInPack.PROFANE -> "Встроенный TTS с матом"
+    fun isPopular(assignment: SoundAssignment): Boolean = when (assignment.sourceType) {
+        SoundSourceType.BUILT_IN_CLEAN -> cleanSoundById(assignment.reference)?.isPopular == true
+        SoundSourceType.BUILT_IN_PROFANE -> true
+        SoundSourceType.CUSTOM -> false
     }
 }
