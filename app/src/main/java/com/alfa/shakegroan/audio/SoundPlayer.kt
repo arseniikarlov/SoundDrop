@@ -5,6 +5,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.speech.tts.TextToSpeech
 import com.alfa.shakegroan.data.AppSettings
+import com.alfa.shakegroan.data.BuiltInPack
 import com.alfa.shakegroan.data.PlaybackMode
 import java.util.Locale
 import kotlin.random.Random
@@ -17,13 +18,6 @@ class SoundPlayer(
     private val appContext = context.applicationContext
     private var mediaPlayer: MediaPlayer? = null
     private var ttsReady = false
-    private val utterances = listOf(
-        "бля!",
-        "ёб твою мать!",
-        "какого хера!",
-        "пиздец!",
-        "сука, бля!",
-    )
     private var textToSpeech: TextToSpeech? = null
 
     init {
@@ -42,7 +36,7 @@ class SoundPlayer(
                     engine.setSpeechRate(0.86f)
                 }
             } else {
-                onInfo("TTS не инициализировался, встроенный мат может молчать")
+                onInfo("TTS не инициализировался, матный встроенный режим может молчать")
             }
         }
     }
@@ -53,8 +47,7 @@ class SoundPlayer(
             return PlaybackSource.CUSTOM
         }
 
-        playBuiltInSound()
-        return PlaybackSource.BUILT_IN
+        return playBuiltInSound(settings)
     }
 
     fun release() {
@@ -93,29 +86,76 @@ class SoundPlayer(
             }
             mediaPlayer != null
         }.getOrElse {
-            onInfo("Ошибка доступа к пользовательскому аудио, использую встроенный мат")
+            onInfo("Ошибка доступа к пользовательскому аудио, использую встроенный набор")
             false
         }
     }
 
-    private fun playBuiltInSound() {
-        if (!ttsReady) {
-            onInfo("Системный TTS ещё не готов для русского мата")
+    private fun playBuiltInSound(settings: AppSettings): PlaybackSource {
+        return when (settings.builtInPack) {
+            BuiltInPack.CLEAN -> {
+                playBundledCleanSound(settings.playbackVolume)
+                PlaybackSource.BUILT_IN_CLEAN
+            }
+
+            BuiltInPack.PROFANE -> {
+                if (playProfaneSpeech()) {
+                    PlaybackSource.BUILT_IN_PROFANE
+                } else {
+                    onInfo("Матный TTS не готов, включаю встроенный не-матный набор")
+                    playBundledCleanSound(settings.playbackVolume)
+                    PlaybackSource.BUILT_IN_CLEAN
+                }
+            }
+        }
+    }
+
+    private fun playBundledCleanSound(volume: Float) {
+        val sound = BuiltInSoundCatalog.cleanSounds.randomOrNull()
+        if (sound == null) {
+            onInfo("Не найден ни один встроенный не-матный файл")
             return
         }
 
-        val engine = textToSpeech ?: return
+        mediaPlayer?.release()
+        mediaPlayer = MediaPlayer.create(appContext, sound.resId)?.apply {
+            setVolume(volume, volume)
+            setOnCompletionListener {
+                it.release()
+                mediaPlayer = null
+            }
+            setOnErrorListener { player, _, _ ->
+                player.release()
+                mediaPlayer = null
+                onInfo("Не удалось воспроизвести один из встроенных не-матных файлов")
+                true
+            }
+            start()
+        }
+        if (mediaPlayer == null) {
+            onInfo("Не удалось открыть встроенный не-матный файл")
+        }
+    }
+
+    private fun playProfaneSpeech(): Boolean {
+        if (!ttsReady) {
+            return false
+        }
+
+        val engine = textToSpeech ?: return false
         engine.stop()
         engine.speak(
-            utterances.random(),
+            BuiltInSoundCatalog.profanePhrases.random(),
             TextToSpeech.QUEUE_FLUSH,
             null,
             "swear-${System.currentTimeMillis()}"
         )
+        return true
     }
 }
 
 enum class PlaybackSource {
-    BUILT_IN,
+    BUILT_IN_CLEAN,
+    BUILT_IN_PROFANE,
     CUSTOM,
 }

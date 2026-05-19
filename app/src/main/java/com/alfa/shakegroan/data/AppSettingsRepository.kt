@@ -16,9 +16,12 @@ class AppSettingsRepository(context: Context) {
         throwImpactThreshold = preferences.getFloat(KEY_THROW_THRESHOLD, 22.0f),
         cooldownMs = preferences.getInt(KEY_COOLDOWN_MS, 1400),
         playbackVolume = preferences.getFloat(KEY_VOLUME, 0.9f),
-        playbackMode = preferences.getString(KEY_PLAYBACK_MODE, PlaybackMode.MIXED.name)
+        playbackMode = preferences.getString(KEY_PLAYBACK_MODE, PlaybackMode.BUILT_IN.name)
             ?.let { raw -> PlaybackMode.entries.firstOrNull { it.name == raw } }
-            ?: PlaybackMode.MIXED,
+            ?: PlaybackMode.BUILT_IN,
+        builtInPack = preferences.getString(KEY_BUILT_IN_PACK, BuiltInPack.CLEAN.name)
+            ?.let { raw -> BuiltInPack.entries.firstOrNull { it.name == raw } }
+            ?: BuiltInPack.CLEAN,
         customSounds = decodeCustomSounds(preferences.getString(KEY_CUSTOM_SOUNDS, null)),
     )
 
@@ -32,6 +35,7 @@ class AppSettingsRepository(context: Context) {
             .putInt(KEY_COOLDOWN_MS, settings.cooldownMs)
             .putFloat(KEY_VOLUME, settings.playbackVolume)
             .putString(KEY_PLAYBACK_MODE, settings.playbackMode.name)
+            .putString(KEY_BUILT_IN_PACK, settings.builtInPack.name)
             .putString(KEY_CUSTOM_SOUNDS, encodeCustomSounds(settings.customSounds))
             .apply()
     }
@@ -78,6 +82,7 @@ class AppSettingsRepository(context: Context) {
         const val KEY_COOLDOWN_MS = "cooldown_ms"
         const val KEY_VOLUME = "volume"
         const val KEY_PLAYBACK_MODE = "playback_mode"
+        const val KEY_BUILT_IN_PACK = "built_in_pack"
         const val KEY_CUSTOM_SOUNDS = "custom_sounds"
     }
 }

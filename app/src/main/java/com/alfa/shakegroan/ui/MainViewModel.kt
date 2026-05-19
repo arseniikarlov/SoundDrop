@@ -6,6 +6,7 @@ import com.alfa.shakegroan.audio.PlaybackSource
 import com.alfa.shakegroan.audio.SoundPlayer
 import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.AppSettingsRepository
+import com.alfa.shakegroan.data.BuiltInPack
 import com.alfa.shakegroan.data.CustomSound
 import com.alfa.shakegroan.data.PickedSound
 import com.alfa.shakegroan.data.PlaybackMode
@@ -18,7 +19,7 @@ import kotlinx.coroutines.flow.update
 data class MainUiState(
     val settings: AppSettings = AppSettings(),
     val lastTriggerLabel: String = "Пока тишина",
-    val statusMessage: String = "Fall Ouch! готов: включи мониторинг, и приложение будет ругаться даже в фоне",
+    val statusMessage: String = "Fall Ouch! готов: по умолчанию включен не-матный набор, но режим можно переключить",
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -51,6 +52,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setPlaybackMode(value: PlaybackMode) = updateSettings { copy(playbackMode = value) }
 
+    fun setBuiltInPack(value: BuiltInPack) = updateSettings { copy(builtInPack = value) }
+
     fun addCustomSounds(newSounds: List<PickedSound>) {
         val uniqueByUri = (_uiState.value.settings.customSounds + newSounds.map {
             CustomSound(uri = it.uri, displayName = it.displayName)
@@ -76,10 +79,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val source = soundPlayer.play(_uiState.value.settings)
         _uiState.update { current ->
             current.copy(
-                statusMessage = when (source) {
-                    PlaybackSource.BUILT_IN -> "Тест: встроенный русский мат"
-                    PlaybackSource.CUSTOM -> "Тест: пользовательский звук"
-                }
+                statusMessage = playbackMessage("Тест", source)
             )
         }
     }
@@ -106,10 +106,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val source = soundPlayer.play(_uiState.value.settings)
         _uiState.update { current ->
             current.copy(
-                statusMessage = when (source) {
-                    PlaybackSource.BUILT_IN -> "Локально сработал встроенный русский мат"
-                    PlaybackSource.CUSTOM -> "Сработал пользовательский звук"
-                }
+                statusMessage = playbackMessage("Локально сработал", source)
             )
         }
     }
@@ -134,5 +131,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             BackgroundMonitorService.stop(getApplication())
         }
+    }
+
+    private fun playbackMessage(prefix: String, source: PlaybackSource): String = when (source) {
+        PlaybackSource.BUILT_IN_CLEAN -> "$prefix встроенный не-матный звук"
+        PlaybackSource.BUILT_IN_PROFANE -> "$prefix встроенный матный режим"
+        PlaybackSource.CUSTOM -> "$prefix пользовательский звук"
     }
 }

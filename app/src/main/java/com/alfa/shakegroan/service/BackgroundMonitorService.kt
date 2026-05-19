@@ -61,7 +61,7 @@ class BackgroundMonitorService : Service() {
             return START_NOT_STICKY
         }
 
-        startInForeground("Фоновый режим активен: мат будет срабатывать даже после сворачивания")
+        startInForeground("Фоновый режим активен: приложение будет реагировать даже после сворачивания")
         sensorMonitor.start(currentSettings.toDetectorConfig())
         broadcastUpdate(
             statusMessage = "Фоновый режим активен",
@@ -86,7 +86,8 @@ class BackgroundMonitorService : Service() {
             MotionEventType.THROW -> "Последнее событие: подброс/пойман"
         }
         val statusMessage = when (source) {
-            PlaybackSource.BUILT_IN -> "Сработал встроенный русский мат"
+            PlaybackSource.BUILT_IN_CLEAN -> "Сработал встроенный не-матный звук"
+            PlaybackSource.BUILT_IN_PROFANE -> "Сработал встроенный матный режим"
             PlaybackSource.CUSTOM -> "Сработал пользовательский звук"
         }
 
@@ -191,7 +192,7 @@ class BackgroundMonitorService : Service() {
             "Fall Ouch! Background Monitor",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Уведомление для фонового мат-режима и мониторинга движения"
+            description = "Уведомление для фонового мониторинга движения и звуковых реакций"
         }
         notificationManager.createNotificationChannel(channel)
     }

@@ -67,7 +67,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alfa.shakegroan.audio.BuiltInSoundCatalog
 import com.alfa.shakegroan.data.AppSettings
+import com.alfa.shakegroan.data.BuiltInPack
 import com.alfa.shakegroan.data.PlaybackMode
 import com.alfa.shakegroan.ui.theme.DeepNight
 import com.alfa.shakegroan.ui.theme.GlassCyan
@@ -137,6 +139,7 @@ fun ShakeGroanApp(
             SelectedSoundCard(
                 settings = uiState.settings,
                 onModeChange = viewModel::setPlaybackMode,
+                onBuiltInPackChange = viewModel::setBuiltInPack,
                 onTestSound = viewModel::testSound
             )
             MySoundsSection(
@@ -594,6 +597,7 @@ private fun VolumeCard(
 private fun SelectedSoundCard(
     settings: AppSettings,
     onModeChange: (PlaybackMode) -> Unit,
+    onBuiltInPackChange: (BuiltInPack) -> Unit,
     onTestSound: () -> Unit,
 ) {
     GlassCard(
@@ -631,7 +635,7 @@ private fun SelectedSoundCard(
                     color = GlassCyan
                 )
                 Text(
-                    text = playbackModeLabel(settings.playbackMode),
+                    text = playbackModeDescription(settings),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.58f)
                 )
@@ -666,6 +670,30 @@ private fun SelectedSoundCard(
                     checked = settings.playbackMode == mode,
                     accent = if (mode == PlaybackMode.BUILT_IN) GlassCyan else GlassPink,
                     onClick = { onModeChange(mode) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Встроенный набор",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.62f)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            BuiltInPack.entries.forEach { pack ->
+                TogglePill(
+                    label = builtInPackShortLabel(pack),
+                    checked = settings.builtInPack == pack,
+                    accent = if (pack == BuiltInPack.CLEAN) GlassCyan else GlassPink,
+                    onClick = { onBuiltInPackChange(pack) }
                 )
             }
         }
@@ -994,20 +1022,25 @@ private fun detectionModeLabel(settings: AppSettings): String = when {
 
 private fun selectedSoundPreview(settings: AppSettings): String = when (settings.playbackMode) {
     PlaybackMode.CUSTOM_ONLY -> settings.customSounds.firstOrNull()?.displayName ?: "Свой файл не выбран"
-    PlaybackMode.MIXED -> settings.customSounds.firstOrNull()?.displayName ?: "Ёб твою мать!"
-    PlaybackMode.BUILT_IN -> "Ёб твою мать!"
+    PlaybackMode.MIXED -> "Свои файлы + ${BuiltInSoundCatalog.labelFor(settings.builtInPack).lowercase()}"
+    PlaybackMode.BUILT_IN -> BuiltInSoundCatalog.previewFor(settings.builtInPack)
 }
 
-private fun playbackModeLabel(mode: PlaybackMode): String = when (mode) {
-    PlaybackMode.BUILT_IN -> "Встроенный русский мат"
-    PlaybackMode.CUSTOM_ONLY -> "Только свои файлы"
-    PlaybackMode.MIXED -> "Смешанный режим"
+private fun playbackModeDescription(settings: AppSettings): String = when (settings.playbackMode) {
+    PlaybackMode.BUILT_IN -> BuiltInSoundCatalog.detailFor(settings.builtInPack)
+    PlaybackMode.CUSTOM_ONLY -> "Только загруженные пользователем файлы"
+    PlaybackMode.MIXED -> "Смешанный режим: свои файлы + ${BuiltInSoundCatalog.labelFor(settings.builtInPack).lowercase()}"
 }
 
 private fun playbackModeShortLabel(mode: PlaybackMode): String = when (mode) {
     PlaybackMode.BUILT_IN -> "Встроенный"
     PlaybackMode.CUSTOM_ONLY -> "Только свои"
     PlaybackMode.MIXED -> "Смешанный"
+}
+
+private fun builtInPackShortLabel(pack: BuiltInPack): String = when (pack) {
+    BuiltInPack.CLEAN -> "Не мат"
+    BuiltInPack.PROFANE -> "Мат"
 }
 
 private fun shakeNormalized(settings: AppSettings): Float =

@@ -8,6 +8,11 @@ enum class PlaybackMode {
     MIXED,
 }
 
+enum class BuiltInPack {
+    CLEAN,
+    PROFANE,
+}
+
 data class CustomSound(
     val uri: String,
     val displayName: String,
@@ -26,7 +31,8 @@ data class AppSettings(
     val throwImpactThreshold: Float = 22.0f,
     val cooldownMs: Int = 1400,
     val playbackVolume: Float = 0.9f,
-    val playbackMode: PlaybackMode = PlaybackMode.MIXED,
+    val playbackMode: PlaybackMode = PlaybackMode.BUILT_IN,
+    val builtInPack: BuiltInPack = BuiltInPack.CLEAN,
     val customSounds: List<CustomSound> = emptyList(),
 )
 
