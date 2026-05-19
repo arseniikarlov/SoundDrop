@@ -9,7 +9,7 @@ class AppSettingsRepository(context: Context) {
     private val preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun load(): AppSettings = AppSettings(
-        isArmed = preferences.getBoolean(KEY_ARMED, true),
+        isArmed = preferences.getBoolean(KEY_ARMED, false),
         shakeEnabled = preferences.getBoolean(KEY_SHAKE_ENABLED, true),
         throwEnabled = preferences.getBoolean(KEY_THROW_ENABLED, true),
         shakeDeltaThreshold = preferences.getFloat(KEY_SHAKE_THRESHOLD, 13.5f),

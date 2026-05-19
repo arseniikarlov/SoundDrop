@@ -9,7 +9,7 @@ import com.alfa.shakegroan.data.AppSettingsRepository
 import com.alfa.shakegroan.data.CustomSound
 import com.alfa.shakegroan.data.PickedSound
 import com.alfa.shakegroan.data.PlaybackMode
-import com.alfa.shakegroan.motion.MotionEventType
+import com.alfa.shakegroan.service.BackgroundMonitorService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.update
 data class MainUiState(
     val settings: AppSettings = AppSettings(),
     val lastTriggerLabel: String = "Пока тишина",
-    val statusMessage: String = "SoundDrop готов: нажми тест или слегка тряхни телефон",
+    val statusMessage: String = "Fall Ouch! готов: включи мониторинг, и приложение будет ругаться даже в фоне",
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -30,6 +30,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(MainUiState(settings = repository.load()))
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+
+    init {
+        syncBackgroundService(_uiState.value.settings)
+    }
 
     fun setArmed(value: Boolean) = updateSettings { copy(isArmed = value) }
 
@@ -73,23 +77,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { current ->
             current.copy(
                 statusMessage = when (source) {
-                    PlaybackSource.BUILT_IN -> "Тест: встроенный стон"
+                    PlaybackSource.BUILT_IN -> "Тест: встроенный русский мат"
                     PlaybackSource.CUSTOM -> "Тест: пользовательский звук"
                 }
             )
         }
     }
 
-    fun onMotionDetected(eventType: MotionEventType) {
+    fun onServiceRuntimeUpdate(
+        lastTriggerLabel: String?,
+        statusMessage: String?,
+        isArmed: Boolean?,
+    ) {
+        _uiState.update { current ->
+            current.copy(
+                settings = if (isArmed == null) {
+                    current.settings
+                } else {
+                    current.settings.copy(isArmed = isArmed)
+                },
+                lastTriggerLabel = lastTriggerLabel ?: current.lastTriggerLabel,
+                statusMessage = statusMessage ?: current.statusMessage,
+            )
+        }
+    }
+
+    fun onMotionDetectedLocally() {
         val source = soundPlayer.play(_uiState.value.settings)
         _uiState.update { current ->
             current.copy(
-                lastTriggerLabel = when (eventType) {
-                    MotionEventType.SHAKE -> "Последнее событие: встряска"
-                    MotionEventType.THROW -> "Последнее событие: подброс/пойман"
-                },
                 statusMessage = when (source) {
-                    PlaybackSource.BUILT_IN -> "Сработал встроенный стон"
+                    PlaybackSource.BUILT_IN -> "Локально сработал встроенный русский мат"
                     PlaybackSource.CUSTOM -> "Сработал пользовательский звук"
                 }
             )
@@ -105,7 +123,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { current ->
             val updatedSettings = current.settings.transform()
             repository.save(updatedSettings)
+            syncBackgroundService(updatedSettings)
             current.copy(settings = updatedSettings)
+        }
+    }
+
+    private fun syncBackgroundService(settings: AppSettings) {
+        if (settings.isArmed) {
+            BackgroundMonitorService.startOrUpdate(getApplication())
+        } else {
+            BackgroundMonitorService.stop(getApplication())
         }
     }
 }

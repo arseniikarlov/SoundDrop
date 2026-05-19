@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SoundDrop"
+rootProject.name = "Fall Ouch!"
 include(":app")

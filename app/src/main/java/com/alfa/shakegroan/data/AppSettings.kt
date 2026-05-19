@@ -19,7 +19,7 @@ data class PickedSound(
 )
 
 data class AppSettings(
-    val isArmed: Boolean = true,
+    val isArmed: Boolean = false,
     val shakeEnabled: Boolean = true,
     val throwEnabled: Boolean = true,
     val shakeDeltaThreshold: Float = 13.5f,
@@ -37,4 +37,3 @@ fun AppSettings.toDetectorConfig(): DetectorConfig = DetectorConfig(
     throwImpactThreshold = throwImpactThreshold,
     cooldownMs = cooldownMs,
 )
-

@@ -17,7 +17,13 @@ class SoundPlayer(
     private val appContext = context.applicationContext
     private var mediaPlayer: MediaPlayer? = null
     private var ttsReady = false
-    private val utterances = listOf("ммм...", "оу...", "аах...", "ой...")
+    private val utterances = listOf(
+        "бля!",
+        "ёб твою мать!",
+        "какого хера!",
+        "пиздец!",
+        "сука, бля!",
+    )
     private var textToSpeech: TextToSpeech? = null
 
     init {
@@ -32,11 +38,11 @@ class SoundPlayer(
                     if (localeResult == TextToSpeech.LANG_MISSING_DATA || localeResult == TextToSpeech.LANG_NOT_SUPPORTED) {
                         engine.language = Locale.US
                     }
-                    engine.setPitch(0.78f)
-                    engine.setSpeechRate(0.62f)
+                    engine.setPitch(0.92f)
+                    engine.setSpeechRate(0.86f)
                 }
             } else {
-                onInfo("TTS не инициализировался, встроенный звук может молчать")
+                onInfo("TTS не инициализировался, встроенный мат может молчать")
             }
         }
     }
@@ -87,14 +93,14 @@ class SoundPlayer(
             }
             mediaPlayer != null
         }.getOrElse {
-            onInfo("Ошибка доступа к пользовательскому аудио, использую встроенный звук")
+            onInfo("Ошибка доступа к пользовательскому аудио, использую встроенный мат")
             false
         }
     }
 
     private fun playBuiltInSound() {
         if (!ttsReady) {
-            onInfo("Системный TTS ещё не готов")
+            onInfo("Системный TTS ещё не готов для русского мата")
             return
         }
 
@@ -104,7 +110,7 @@ class SoundPlayer(
             utterances.random(),
             TextToSpeech.QUEUE_FLUSH,
             null,
-            "groan-${System.currentTimeMillis()}"
+            "swear-${System.currentTimeMillis()}"
         )
     }
 }
