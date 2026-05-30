@@ -1,5 +1,6 @@
 package com.alfa.shakegroan
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -14,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import com.alfa.shakegroan.data.PickedSound
+import com.alfa.shakegroan.data.displayNameWithoutAudioExtension
 import com.alfa.shakegroan.service.BackgroundMonitorService
 import com.alfa.shakegroan.ui.MainViewModel
 import com.alfa.shakegroan.ui.ShakeGroanApp
@@ -47,20 +49,40 @@ class MainActivity : ComponentActivity() {
     private val openAudioFiles =
         registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
             val pickedSounds = uris.mapNotNull { uri ->
-                runCatching {
-                    contentResolver.takePersistableUriPermission(
-                        uri,
-                        android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                }
+                persistReadPermission(uri)
                 PickedSound(
                     uri = uri.toString(),
-                    displayName = queryDisplayName(uri.toString()) ?: uri.lastPathSegment ?: "audio"
+                    displayName = displayNameWithoutAudioExtension(
+                        queryDisplayName(uri.toString()) ?: uri.lastPathSegment ?: "audio"
+                    )
                 )
             }
 
             if (pickedSounds.isNotEmpty()) {
                 viewModel.addCustomSounds(pickedSounds)
+            }
+        }
+
+    private val openVideoFile =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) {
+                return@registerForActivityResult
+            }
+            persistReadPermission(uri)
+            viewModel.prepareVideoDraft(
+                uriString = uri.toString(),
+                displayName = displayNameWithoutAudioExtension(
+                    queryDisplayName(uri.toString()) ?: uri.lastPathSegment ?: "video"
+                ),
+            )
+        }
+
+    private val requestMicrophonePermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                viewModel.startRecordingSession()
+            } else {
+                viewModel.onRecordPermissionDenied()
             }
         }
 
@@ -72,7 +94,19 @@ class MainActivity : ComponentActivity() {
             ShakeGroanTheme {
                 ShakeGroanApp(
                     viewModel = viewModel,
-                    onAddSounds = { openAudioFiles.launch(arrayOf("audio/*")) }
+                    onPickAudioFiles = { openAudioFiles.launch(arrayOf("audio/*")) },
+                    onPickVideoFile = { openVideoFile.launch(arrayOf("video/*")) },
+                    onRequestRecording = {
+                        val permissionState = ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.RECORD_AUDIO
+                        )
+                        if (permissionState == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            viewModel.startRecordingSession()
+                        } else {
+                            requestMicrophonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    }
                 )
             }
         }
@@ -102,6 +136,15 @@ class MainActivity : ComponentActivity() {
             runtimeReceiverRegistered = false
         }
         super.onStop()
+    }
+
+    private fun persistReadPermission(uri: android.net.Uri) {
+        runCatching {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }
     }
 
     private fun queryDisplayName(uriString: String): String? {

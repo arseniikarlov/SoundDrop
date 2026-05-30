@@ -1,13 +1,17 @@
 package com.alfa.shakegroan.motion
 
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.sqrt
 
 data class DetectorConfig(
     val shakeEnabled: Boolean = true,
     val throwEnabled: Boolean = true,
+    val slapEnabled: Boolean = true,
     val shakeDeltaThreshold: Float = 13.5f,
     val throwImpactThreshold: Float = 22.0f,
+    val slapImpactThreshold: Float = 18.0f,
+    val slapConfirmationWindowMs: Long = 180L,
     val freeFallThreshold: Float = 3.0f,
     val requiredShakePeaks: Int = 3,
     val shakeWindowMs: Long = 850L,
@@ -19,6 +23,7 @@ data class DetectorConfig(
 enum class MotionEventType {
     SHAKE,
     THROW,
+    SLAP,
 }
 
 class MotionEventDetector(
@@ -33,6 +38,7 @@ class MotionEventDetector(
     private var lastShakePeakAt = Long.MIN_VALUE
     private var lastFreeFallAt = Long.MIN_VALUE
     private var lastTriggeredAt = Long.MIN_VALUE
+    private var pendingSlapAt = Long.MIN_VALUE
 
     fun updateConfig(newConfig: DetectorConfig) {
         config = newConfig
@@ -41,10 +47,24 @@ class MotionEventDetector(
     fun onSample(x: Float, y: Float, z: Float): MotionEventType? {
         val now = clock()
         val magnitude = sqrt(x * x + y * y + z * z)
+        val delta = abs(magnitude - lastMagnitude)
+        lastMagnitude = magnitude
 
         val throwEvent = if (config.throwEnabled) detectThrow(now, magnitude) else null
-        val shakeEvent = if (throwEvent == null && config.shakeEnabled) detectShake(now, magnitude) else null
-        val detectedEvent = throwEvent ?: shakeEvent
+        val shakeEvent = if (throwEvent == null && config.shakeEnabled) {
+            detectShake(now, delta)
+        } else {
+            null
+        }
+        if (throwEvent != null || shakeEvent != null) {
+            clearPendingSlap()
+        }
+        val slapEvent = if (throwEvent == null && shakeEvent == null && config.slapEnabled) {
+            detectSlap(now, magnitude, delta)
+        } else {
+            null
+        }
+        val detectedEvent = throwEvent ?: shakeEvent ?: slapEvent
 
         if (detectedEvent == null) {
             return null
@@ -58,10 +78,7 @@ class MotionEventDetector(
         return detectedEvent
     }
 
-    private fun detectShake(now: Long, magnitude: Float): MotionEventType? {
-        val delta = abs(magnitude - lastMagnitude)
-        lastMagnitude = magnitude
-
+    private fun detectShake(now: Long, delta: Float): MotionEventType? {
         if (delta < config.shakeDeltaThreshold) {
             return null
         }
@@ -87,6 +104,47 @@ class MotionEventDetector(
         return null
     }
 
+    private fun detectSlap(
+        now: Long,
+        magnitude: Float,
+        delta: Float,
+    ): MotionEventType? {
+        if (lastFreeFallAt != Long.MIN_VALUE && now - lastFreeFallAt <= config.throwWindowMs) {
+            clearPendingSlap()
+            return null
+        }
+
+        val impactDeltaThreshold = max(6f, config.shakeDeltaThreshold * 0.6f)
+        val strongImpact = magnitude >= config.slapImpactThreshold && delta >= impactDeltaThreshold
+
+        if (strongImpact && pendingSlapAt == Long.MIN_VALUE) {
+            pendingSlapAt = now
+            return null
+        }
+
+        if (strongImpact && pendingSlapAt != Long.MIN_VALUE) {
+            clearPendingSlap()
+            return null
+        }
+
+        if (pendingSlapAt == Long.MIN_VALUE) {
+            return null
+        }
+
+        val confirmationPassed = now - pendingSlapAt >= config.slapConfirmationWindowMs
+        if (!confirmationPassed) {
+            return null
+        }
+
+        val settledDown = delta < config.shakeDeltaThreshold
+        if (!settledDown) {
+            return null
+        }
+
+        clearPendingSlap()
+        return MotionEventType.SLAP
+    }
+
     private fun detectThrow(now: Long, magnitude: Float): MotionEventType? {
         if (magnitude < config.freeFallThreshold) {
             lastFreeFallAt = now
@@ -107,5 +165,8 @@ class MotionEventDetector(
 
         return null
     }
-}
 
+    private fun clearPendingSlap() {
+        pendingSlapAt = Long.MIN_VALUE
+    }
+}

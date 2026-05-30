@@ -31,8 +31,7 @@ class MotionSensorMonitor(
     fun start(config: DetectorConfig) {
         val manager = sensorManager ?: return
         val sensor = accelerometer ?: return
-
-        detector.updateConfig(config)
+        detector = MotionEventDetector(config)
         if (isStarted) {
             return
         }
@@ -51,4 +50,3 @@ class MotionSensorMonitor(
         isStarted = false
     }
 }
-

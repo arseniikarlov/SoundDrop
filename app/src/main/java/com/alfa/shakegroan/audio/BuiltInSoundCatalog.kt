@@ -14,12 +14,12 @@ data class BundledSound(
 
 object BuiltInSoundCatalog {
     val cleanSounds = listOf(
-        BundledSound("clean_doh1", R.raw.clean_doh1, "doh1.mp3", isPopular = true),
-        BundledSound("clean_untitled2", R.raw.clean_untitled2, "untitled2.mp3"),
-        BundledSound("clean_tom_scream", R.raw.clean_tom_scream, "tom_scream.mp3", isPopular = true),
-        BundledSound("clean_o_kurwa", R.raw.clean_o_kurwa, "o-kurwa.mp3"),
-        BundledSound("clean_sdfds", R.raw.clean_sdfds, "sdfds.mp3"),
-        BundledSound("clean_gta_wasted_5", R.raw.clean_gta_wasted_5, "5-gta-wasted.mp3", isPopular = true),
+        BundledSound("clean_doh1", R.raw.clean_doh1, "doh1", isPopular = true),
+        BundledSound("clean_untitled2", R.raw.clean_untitled2, "untitled2"),
+        BundledSound("clean_tom_scream", R.raw.clean_tom_scream, "tom_scream", isPopular = true),
+        BundledSound("clean_o_kurwa", R.raw.clean_o_kurwa, "o-kurwa"),
+        BundledSound("clean_sdfds", R.raw.clean_sdfds, "sdfds"),
+        BundledSound("clean_gta_wasted_5", R.raw.clean_gta_wasted_5, "5-gta-wasted", isPopular = true),
     )
 
     val profanePhrases = listOf(
@@ -37,7 +37,9 @@ object BuiltInSoundCatalog {
 
     fun defaultShakeAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_doh1" })
 
-    fun defaultThrowAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_gta_wasted_5" })
+    fun defaultThrowAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_tom_scream" })
+
+    fun defaultSlapAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_untitled2" })
 
     fun profaneAssignment(): SoundAssignment = SoundAssignment(
         sourceType = SoundSourceType.BUILT_IN_PROFANE,

@@ -51,7 +51,7 @@ object FallOuchWidgetUpdater {
         )
         views.setTextViewText(
             R.id.widget_status_title,
-            if (isArmed) "Сервис слушает падения" else "Сервис пока выключен"
+            if (isArmed) "Сервис слушает падения и шлепки" else "Сервис пока выключен"
         )
         views.setTextViewText(
             R.id.widget_status_subtitle,
@@ -59,7 +59,7 @@ object FallOuchWidgetUpdater {
         )
         views.setTextViewText(R.id.widget_mode_title, "Тряска: ${settings.shakeSound.displayName}")
         views.setTextViewText(R.id.widget_mode_detail, "Падение: ${settings.throwSound.displayName}")
-        views.setTextViewText(R.id.widget_library_detail, librarySummary(settings))
+        views.setTextViewText(R.id.widget_library_detail, "Шлепок: ${settings.slapSound.displayName}")
         views.setTextViewText(R.id.widget_toggle_button, if (isArmed) "Выключить" else "Включить")
 
         val openAppPendingIntent = PendingIntent.getActivity(
@@ -85,17 +85,6 @@ object FallOuchWidgetUpdater {
         views.setOnClickPendingIntent(R.id.widget_open_button, openAppPendingIntent)
         views.setOnClickPendingIntent(R.id.widget_toggle_button, togglePendingIntent)
         return views
-    }
-
-    private fun librarySummary(settings: AppSettings): String {
-        val customCount = settings.customSounds.size
-        val customLabel = when {
-            customCount == 0 -> "своих файлов нет"
-            customCount == 1 -> "1 свой файл"
-            customCount in 2..4 -> "$customCount своих файла"
-            else -> "$customCount своих файлов"
-        }
-        return "Мои звуки: $customLabel"
     }
 
 }

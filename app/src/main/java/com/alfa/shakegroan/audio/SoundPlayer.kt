@@ -3,7 +3,10 @@ package com.alfa.shakegroan.audio
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.SoundAssignment
 import com.alfa.shakegroan.data.SoundSourceType
@@ -17,7 +20,9 @@ class SoundPlayer(
 ) {
 
     private val appContext = context.applicationContext
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var mediaPlayer: MediaPlayer? = null
+    private var previewFinishedCallback: (() -> Unit)? = null
     private var ttsReady = false
     private var textToSpeech: TextToSpeech? = null
 
@@ -33,6 +38,25 @@ class SoundPlayer(
                     if (localeResult == TextToSpeech.LANG_MISSING_DATA || localeResult == TextToSpeech.LANG_NOT_SUPPORTED) {
                         engine.language = Locale.US
                     }
+                    engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) = Unit
+
+                        override fun onDone(utteranceId: String?) {
+                            mainHandler.post { finishPreviewIfNeeded() }
+                        }
+
+                        @Deprecated("Deprecated in Java")
+                        override fun onError(utteranceId: String?) {
+                            mainHandler.post { finishPreviewIfNeeded() }
+                        }
+
+                        override fun onError(
+                            utteranceId: String?,
+                            errorCode: Int,
+                        ) {
+                            mainHandler.post { finishPreviewIfNeeded() }
+                        }
+                    })
                     engine.setPitch(0.92f)
                     engine.setSpeechRate(0.86f)
                 }
@@ -47,61 +71,87 @@ class SoundPlayer(
     }
 
     fun release() {
-        mediaPlayer?.release()
-        mediaPlayer = null
+        stopActivePlayback()
         textToSpeech?.stop()
         textToSpeech?.shutdown()
         textToSpeech = null
     }
 
-    fun preview(assignment: SoundAssignment, volume: Float): PlaybackSource {
-        return playAssignment(assignment, volume)
+    fun preview(
+        assignment: SoundAssignment,
+        volume: Float,
+        onFinished: () -> Unit,
+    ): PlaybackSource {
+        previewFinishedCallback = onFinished
+        return playAssignment(assignment, volume, onFinished)
+    }
+
+    fun stopActivePlayback() {
+        previewFinishedCallback = null
+        mediaPlayer?.release()
+        mediaPlayer = null
+        textToSpeech?.stop()
     }
 
     private fun playAssignment(
         assignment: SoundAssignment,
         volume: Float,
+        onFinished: (() -> Unit)? = null,
     ): PlaybackSource = when (assignment.sourceType) {
         SoundSourceType.CUSTOM -> {
-            if (playCustomSound(assignment.reference, volume)) {
+            if (playCustomSound(assignment.reference, volume, onFinished)) {
                 PlaybackSource.CUSTOM
             } else {
                 val fallback = BuiltInSoundCatalog.defaultShakeAssignment()
-                playCleanBundledSound(fallback.reference, volume)
+                playCleanBundledSound(fallback.reference, volume, onFinished)
                 PlaybackSource.BUILT_IN_CLEAN
             }
         }
 
         SoundSourceType.BUILT_IN_PROFANE -> {
-            if (playProfaneSpeech()) {
+            if (playProfaneSpeech(onFinished)) {
                 PlaybackSource.BUILT_IN_PROFANE
             } else {
                 onInfo("Матный TTS не готов, включаю встроенный не-матный набор")
                 val fallback = BuiltInSoundCatalog.defaultShakeAssignment()
-                playCleanBundledSound(fallback.reference, volume)
+                playCleanBundledSound(fallback.reference, volume, onFinished)
                 PlaybackSource.BUILT_IN_CLEAN
             }
         }
 
         SoundSourceType.BUILT_IN_CLEAN -> {
-            playCleanBundledSound(assignment.reference, volume)
+            playCleanBundledSound(assignment.reference, volume, onFinished)
             PlaybackSource.BUILT_IN_CLEAN
         }
     }
 
-    private fun playCustomSound(uriString: String, volume: Float): Boolean {
+    private fun playCustomSound(
+        uriString: String,
+        volume: Float,
+        onFinished: (() -> Unit)?,
+    ): Boolean {
         return runCatching {
-            mediaPlayer?.release()
-            mediaPlayer = MediaPlayer.create(appContext, Uri.parse(uriString))?.apply {
+            stopActivePlayback()
+            previewFinishedCallback = onFinished
+            val targetUri = Uri.parse(uriString)
+            mediaPlayer = MediaPlayer().apply {
+                if (targetUri.scheme == "file") {
+                    setDataSource(targetUri.path ?: uriString)
+                } else {
+                    setDataSource(appContext, targetUri)
+                }
+                prepare()
                 setVolume(volume, volume)
                 setOnCompletionListener {
                     it.release()
                     mediaPlayer = null
+                    finishPreviewIfNeeded()
                 }
                 setOnErrorListener { player, _, _ ->
                     player.release()
                     mediaPlayer = null
                     onInfo("Не удалось воспроизвести один из пользовательских файлов")
+                    finishPreviewIfNeeded()
                     true
                 }
                 start()
@@ -116,6 +166,7 @@ class SoundPlayer(
     private fun playCleanBundledSound(
         soundId: String,
         volume: Float,
+        onFinished: (() -> Unit)?,
     ) {
         val sound = BuiltInSoundCatalog.cleanSoundById(soundId)
         if (sound == null) {
@@ -123,17 +174,20 @@ class SoundPlayer(
             return
         }
 
-        mediaPlayer?.release()
+        stopActivePlayback()
+        previewFinishedCallback = onFinished
         mediaPlayer = MediaPlayer.create(appContext, sound.resId)?.apply {
             setVolume(volume, volume)
             setOnCompletionListener {
                 it.release()
                 mediaPlayer = null
+                finishPreviewIfNeeded()
             }
             setOnErrorListener { player, _, _ ->
                 player.release()
                 mediaPlayer = null
                 onInfo("Не удалось воспроизвести один из встроенных не-матных файлов")
+                finishPreviewIfNeeded()
                 true
             }
             start()
@@ -143,12 +197,14 @@ class SoundPlayer(
         }
     }
 
-    private fun playProfaneSpeech(): Boolean {
+    private fun playProfaneSpeech(onFinished: (() -> Unit)?): Boolean {
         if (!ttsReady) {
             return false
         }
 
         val engine = textToSpeech ?: return false
+        stopActivePlayback()
+        previewFinishedCallback = onFinished
         engine.stop()
         engine.speak(
             BuiltInSoundCatalog.profanePhrases.random(),
@@ -157,6 +213,12 @@ class SoundPlayer(
             "swear-${System.currentTimeMillis()}"
         )
         return true
+    }
+
+    private fun finishPreviewIfNeeded() {
+        val callback = previewFinishedCallback ?: return
+        previewFinishedCallback = null
+        callback()
     }
 }
 
