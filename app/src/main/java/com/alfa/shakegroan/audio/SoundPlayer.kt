@@ -106,7 +106,7 @@ class SoundPlayer(
             if (playCustomSound(assignment.reference, volume, onFinished, onProgress)) {
                 PlaybackSource.CUSTOM
             } else {
-                val fallback = BuiltInSoundCatalog.defaultShakeAssignment()
+                val fallback = BuiltInSoundCatalog.defaultSlapAssignment()
                 playCleanBundledSound(fallback.reference, volume, onFinished, onProgress)
                 PlaybackSource.BUILT_IN_CLEAN
             }
@@ -117,7 +117,7 @@ class SoundPlayer(
                 PlaybackSource.BUILT_IN_PROFANE
             } else {
                 onInfo("Матный TTS не готов, включаю встроенный не-матный набор")
-                val fallback = BuiltInSoundCatalog.defaultShakeAssignment()
+                val fallback = BuiltInSoundCatalog.defaultSlapAssignment()
                 playCleanBundledSound(fallback.reference, volume, onFinished, onProgress)
                 PlaybackSource.BUILT_IN_CLEAN
             }

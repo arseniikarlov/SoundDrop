@@ -7,85 +7,10 @@ import org.junit.Test
 class MotionEventDetectorTest {
 
     @Test
-    fun `detects shake after three strong peaks`() {
-        var now = 0L
-        val detector = MotionEventDetector(
-            initialConfig = DetectorConfig(
-                shakeEnabled = true,
-                throwEnabled = false,
-                slapEnabled = false,
-                shakeDeltaThreshold = 10f,
-                cooldownMs = 0
-            ),
-            clock = { now }
-        )
-
-        assertNull(detector.onSample(0f, 0f, 9.81f))
-        now += 100
-        assertNull(detector.onSample(25f, 0f, 0f))
-        now += 100
-        assertNull(detector.onSample(0f, 0f, 0f))
-        now += 100
-        assertEquals(MotionEventType.SHAKE, detector.onSample(25f, 0f, 0f))
-    }
-
-    @Test
-    fun `detects shake even when slap mode is enabled`() {
-        var now = 0L
-        val detector = MotionEventDetector(
-            initialConfig = DetectorConfig(
-                shakeEnabled = true,
-                throwEnabled = false,
-                slapEnabled = true,
-                shakeDeltaThreshold = 10f,
-                slapImpactThreshold = 18f,
-                cooldownMs = 0
-            ),
-            clock = { now }
-        )
-
-        assertNull(detector.onSample(0f, 0f, 9.81f))
-        now += 100
-        assertNull(detector.onSample(25f, 0f, 0f))
-        now += 100
-        assertNull(detector.onSample(0f, 0f, 0f))
-        now += 100
-        assertEquals(MotionEventType.SHAKE, detector.onSample(25f, 0f, 0f))
-    }
-
-    @Test
-    fun `gyro assists shake when acceleration peaks are softer`() {
-        var now = 0L
-        val detector = MotionEventDetector(
-            initialConfig = DetectorConfig(
-                shakeEnabled = true,
-                throwEnabled = false,
-                slapEnabled = false,
-                shakeDeltaThreshold = 10f,
-                gyroShakeThreshold = 3f,
-                cooldownMs = 0
-            ),
-            clock = { now }
-        )
-
-        assertNull(detector.onSample(0f, 0f, 9.81f))
-        now += 100
-        detector.onGyroscopeSample(0f, 4f, 0f)
-        assertNull(detector.onSample(17f, 0f, 0f))
-        now += 100
-        detector.onGyroscopeSample(0f, 4f, 0f)
-        assertNull(detector.onSample(0f, 0f, 9.81f))
-        now += 100
-        detector.onGyroscopeSample(0f, 4f, 0f)
-        assertEquals(MotionEventType.SHAKE, detector.onSample(17f, 0f, 0f))
-    }
-
-    @Test
     fun `detects throw after free fall and impact`() {
         var now = 0L
         val detector = MotionEventDetector(
             initialConfig = DetectorConfig(
-                shakeEnabled = false,
                 throwEnabled = true,
                 slapEnabled = false,
                 throwImpactThreshold = 20f,
@@ -105,7 +30,6 @@ class MotionEventDetectorTest {
         var now = 0L
         val detector = MotionEventDetector(
             initialConfig = DetectorConfig(
-                shakeEnabled = false,
                 throwEnabled = true,
                 slapEnabled = true,
                 throwImpactThreshold = 20f,
@@ -127,7 +51,6 @@ class MotionEventDetectorTest {
         var now = 0L
         val detector = MotionEventDetector(
             initialConfig = DetectorConfig(
-                shakeEnabled = false,
                 throwEnabled = true,
                 slapEnabled = false,
                 throwImpactThreshold = 20f,
@@ -150,7 +73,6 @@ class MotionEventDetectorTest {
         var now = 0L
         val detector = MotionEventDetector(
             initialConfig = DetectorConfig(
-                shakeEnabled = false,
                 throwEnabled = false,
                 slapEnabled = true,
                 slapImpactThreshold = 18f,
@@ -172,7 +94,6 @@ class MotionEventDetectorTest {
         var now = 0L
         val detector = MotionEventDetector(
             initialConfig = DetectorConfig(
-                shakeEnabled = false,
                 throwEnabled = false,
                 slapEnabled = true,
                 cooldownMs = 0
@@ -192,7 +113,6 @@ class MotionEventDetectorTest {
         var now = 0L
         val detector = MotionEventDetector(
             initialConfig = DetectorConfig(
-                shakeEnabled = false,
                 throwEnabled = true,
                 slapEnabled = true,
                 throwImpactThreshold = 20f,
@@ -213,10 +133,8 @@ class MotionEventDetectorTest {
         var now = 0L
         val detector = MotionEventDetector(
             initialConfig = DetectorConfig(
-                shakeEnabled = true,
                 throwEnabled = false,
-                slapEnabled = false,
-                shakeDeltaThreshold = 8f,
+                slapEnabled = true,
                 cooldownMs = 1_000
             ),
             clock = { now }
@@ -224,17 +142,13 @@ class MotionEventDetectorTest {
 
         detector.onSample(0f, 0f, 9.81f)
         now += 100
-        detector.onSample(25f, 0f, 0f)
-        now += 100
-        detector.onSample(0f, 0f, 0f)
-        now += 100
-        assertEquals(MotionEventType.SHAKE, detector.onSample(25f, 0f, 0f))
+        detector.onSample(0f, 0f, 20f)
+        now += 90
+        assertEquals(MotionEventType.SLAP, detector.onSample(0f, 0f, 9.81f))
 
         now += 100
-        detector.onSample(0f, 0f, 0f)
-        now += 100
-        detector.onSample(25f, 0f, 0f)
-        now += 100
-        assertNull(detector.onSample(0f, 0f, 0f))
+        detector.onSample(0f, 0f, 20f)
+        now += 90
+        assertNull(detector.onSample(0f, 0f, 9.81f))
     }
 }

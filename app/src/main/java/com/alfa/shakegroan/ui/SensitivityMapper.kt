@@ -1,18 +1,6 @@
 package com.alfa.shakegroan.ui
 
 internal object SensitivityMapper {
-    fun shakeProgress(threshold: Float): Float = descendingProgress(
-        threshold = threshold,
-        lowSensitivityThreshold = 22f,
-        highSensitivityThreshold = 8f,
-    )
-
-    fun shakeThreshold(progress: Float): Float = descendingThreshold(
-        progress = progress,
-        lowSensitivityThreshold = 22f,
-        highSensitivityThreshold = 8f,
-    )
-
     fun throwProgress(threshold: Float): Float = descendingProgress(
         threshold = threshold,
         lowSensitivityThreshold = 150f,

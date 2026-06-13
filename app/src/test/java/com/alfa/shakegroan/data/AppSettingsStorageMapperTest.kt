@@ -11,7 +11,6 @@ class AppSettingsStorageMapperTest {
     fun `uses slap defaults when snapshot has no slap fields`() {
         val settings = AppSettingsStorageMapper.fromSnapshot(
             StoredSettingsSnapshot(
-                shakeSoundRaw = null,
                 throwSoundRaw = null,
                 slapSoundRaw = null,
                 customSoundsRaw = null,
@@ -53,7 +52,7 @@ class AppSettingsStorageMapperTest {
 
         val restored = AppSettingsStorageMapper.decodeAssignment(
             AppSettingsStorageMapper.encodeAssignment(original),
-            BuiltInSoundCatalog.defaultShakeAssignment()
+            BuiltInSoundCatalog.defaultThrowAssignment()
         )
 
         assertEquals(original, restored)

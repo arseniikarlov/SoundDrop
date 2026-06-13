@@ -25,15 +25,12 @@ class AppSettingsRepository(context: Context) {
         }
         val snapshot = StoredSettingsSnapshot(
             isArmed = preferences.getBoolean(KEY_ARMED, false),
-            shakeEnabled = preferences.getBoolean(KEY_SHAKE_ENABLED, true),
             throwEnabled = preferences.getBoolean(KEY_THROW_ENABLED, true),
             slapEnabled = preferences.getBoolean(KEY_SLAP_ENABLED, true),
-            shakeDeltaThreshold = preferences.getFloat(KEY_SHAKE_THRESHOLD, 13.5f),
             throwImpactThreshold = throwImpactThreshold,
             slapImpactThreshold = preferences.getFloat(KEY_SLAP_THRESHOLD, 18.0f),
             cooldownMs = cooldownMs,
             playbackVolume = preferences.getFloat(KEY_VOLUME, 0.9f),
-            shakeSoundRaw = preferences.getString(KEY_SHAKE_SOUND, null),
             throwSoundRaw = preferences.getString(KEY_THROW_SOUND, null),
             slapSoundRaw = preferences.getString(KEY_SLAP_SOUND, null),
             customSoundsRaw = preferences.getString(KEY_CUSTOM_SOUNDS, null),
@@ -51,15 +48,12 @@ class AppSettingsRepository(context: Context) {
         preferences.edit()
             .putInt(KEY_SETTINGS_VERSION, CURRENT_SETTINGS_VERSION)
             .putBoolean(KEY_ARMED, settings.isArmed)
-            .putBoolean(KEY_SHAKE_ENABLED, settings.shakeEnabled)
             .putBoolean(KEY_THROW_ENABLED, settings.throwEnabled)
             .putBoolean(KEY_SLAP_ENABLED, settings.slapEnabled)
-            .putFloat(KEY_SHAKE_THRESHOLD, settings.shakeDeltaThreshold)
             .putFloat(KEY_THROW_THRESHOLD, settings.throwImpactThreshold)
             .putFloat(KEY_SLAP_THRESHOLD, settings.slapImpactThreshold)
             .putInt(KEY_COOLDOWN_MS, settings.cooldownMs)
             .putFloat(KEY_VOLUME, settings.playbackVolume)
-            .putString(KEY_SHAKE_SOUND, AppSettingsStorageMapper.encodeAssignment(settings.shakeSound))
             .putString(KEY_THROW_SOUND, AppSettingsStorageMapper.encodeAssignment(settings.throwSound))
             .putString(KEY_SLAP_SOUND, AppSettingsStorageMapper.encodeAssignment(settings.slapSound))
             .putString(KEY_CUSTOM_SOUNDS, AppSettingsStorageMapper.encodeCustomSounds(settings.customSounds))
@@ -71,15 +65,12 @@ class AppSettingsRepository(context: Context) {
         const val PREFS_NAME = "shake_groan_settings"
         const val KEY_SETTINGS_VERSION = "settings_version"
         const val KEY_ARMED = "armed"
-        const val KEY_SHAKE_ENABLED = "shake_enabled"
         const val KEY_THROW_ENABLED = "throw_enabled"
         const val KEY_SLAP_ENABLED = "slap_enabled"
-        const val KEY_SHAKE_THRESHOLD = "shake_threshold"
         const val KEY_THROW_THRESHOLD = "throw_threshold"
         const val KEY_SLAP_THRESHOLD = "slap_threshold"
         const val KEY_COOLDOWN_MS = "cooldown_ms"
         const val KEY_VOLUME = "volume"
-        const val KEY_SHAKE_SOUND = "shake_sound"
         const val KEY_THROW_SOUND = "throw_sound"
         const val KEY_SLAP_SOUND = "slap_sound"
         const val KEY_PLAYBACK_MODE = "playback_mode"
@@ -90,15 +81,12 @@ class AppSettingsRepository(context: Context) {
 
 internal data class StoredSettingsSnapshot(
     val isArmed: Boolean = false,
-    val shakeEnabled: Boolean = true,
     val throwEnabled: Boolean = true,
     val slapEnabled: Boolean = true,
-    val shakeDeltaThreshold: Float = 13.5f,
     val throwImpactThreshold: Float = 95.0f,
     val slapImpactThreshold: Float = 18.0f,
     val cooldownMs: Int = 1000,
     val playbackVolume: Float = 0.9f,
-    val shakeSoundRaw: String? = null,
     val throwSoundRaw: String? = null,
     val slapSoundRaw: String? = null,
     val customSoundsRaw: String? = null,
@@ -117,12 +105,6 @@ internal object AppSettingsStorageMapper {
             ?.let { raw -> BuiltInPack.entries.firstOrNull { it.name == raw } }
             ?: BuiltInPack.CLEAN
 
-        val defaultShakeSound = legacyDefaultAssignment(
-            event = DefaultEvent.SHAKE,
-            customSounds = customSounds,
-            playbackMode = legacyPlaybackMode,
-            builtInPack = legacyBuiltInPack,
-        )
         val defaultThrowSound = legacyDefaultAssignment(
             event = DefaultEvent.THROW,
             customSounds = customSounds,
@@ -138,15 +120,12 @@ internal object AppSettingsStorageMapper {
 
         return AppSettings(
             isArmed = snapshot.isArmed,
-            shakeEnabled = snapshot.shakeEnabled,
             throwEnabled = snapshot.throwEnabled,
             slapEnabled = snapshot.slapEnabled,
-            shakeDeltaThreshold = snapshot.shakeDeltaThreshold,
             throwImpactThreshold = snapshot.throwImpactThreshold,
             slapImpactThreshold = snapshot.slapImpactThreshold,
             cooldownMs = snapshot.cooldownMs,
             playbackVolume = snapshot.playbackVolume,
-            shakeSound = decodeAssignment(snapshot.shakeSoundRaw, defaultShakeSound),
             throwSound = decodeAssignment(snapshot.throwSoundRaw, defaultThrowSound),
             slapSound = decodeAssignment(snapshot.slapSoundRaw, defaultSlapSound),
             customSounds = customSounds,
@@ -234,14 +213,12 @@ internal object AppSettingsStorageMapper {
         }
 
         return when (event) {
-            DefaultEvent.SHAKE -> BuiltInSoundCatalog.defaultShakeAssignment()
             DefaultEvent.THROW -> BuiltInSoundCatalog.defaultThrowAssignment()
             DefaultEvent.SLAP -> BuiltInSoundCatalog.defaultSlapAssignment()
         }
     }
 
     private enum class DefaultEvent {
-        SHAKE,
         THROW,
         SLAP,
     }

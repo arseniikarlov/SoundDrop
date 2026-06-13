@@ -137,7 +137,6 @@ private enum class AppScreen {
 
 private enum class SoundTarget {
     THROW,
-    SHAKE,
     SLAP,
 }
 
@@ -217,10 +216,8 @@ fun ShakeGroanApp(
             AppScreen.SETTINGS -> SettingsScreen(
                 state = uiState,
                 onOpenTarget = ::openTargetPicker,
-                onShakeEnabledChange = viewModel::setShakeEnabled,
                 onThrowEnabledChange = viewModel::setThrowEnabled,
                 onSlapEnabledChange = viewModel::setSlapEnabled,
-                onShakeThresholdChange = viewModel::setShakeThreshold,
                 onThrowThresholdChange = viewModel::setThrowThreshold,
                 onSlapThresholdChange = viewModel::setSlapThreshold,
                 onVolumeChange = viewModel::setVolume,
@@ -440,10 +437,8 @@ private fun HomeScreen(
 private fun SettingsScreen(
     state: MainUiState,
     onOpenTarget: (SoundTarget) -> Unit,
-    onShakeEnabledChange: (Boolean) -> Unit,
     onThrowEnabledChange: (Boolean) -> Unit,
     onSlapEnabledChange: (Boolean) -> Unit,
-    onShakeThresholdChange: (Float) -> Unit,
     onThrowThresholdChange: (Float) -> Unit,
     onSlapThresholdChange: (Float) -> Unit,
     onVolumeChange: (Float) -> Unit,
@@ -455,10 +450,6 @@ private fun SettingsScreen(
         CardBlock {
             SettingSoundRow("Падение", state.settings.throwSound.displayName) {
                 onOpenTarget(SoundTarget.THROW)
-            }
-            CardDivider()
-            SettingSoundRow("Тряска", state.settings.shakeSound.displayName) {
-                onOpenTarget(SoundTarget.SHAKE)
             }
             CardDivider()
             SettingSoundRow("Шлепок", state.settings.slapSound.displayName) {
@@ -474,15 +465,6 @@ private fun SettingsScreen(
                 progress = SensitivityMapper.throwProgress(state.settings.throwImpactThreshold),
                 onToggle = onThrowEnabledChange,
                 onProgressChange = { onThrowThresholdChange(SensitivityMapper.throwThreshold(it)) },
-                accent = AppAccent,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            ModeSliderRow(
-                title = "Тряска",
-                enabled = state.settings.shakeEnabled,
-                progress = SensitivityMapper.shakeProgress(state.settings.shakeDeltaThreshold),
-                onToggle = onShakeEnabledChange,
-                onProgressChange = { onShakeThresholdChange(SensitivityMapper.shakeThreshold(it)) },
                 accent = AppAccent,
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -1968,13 +1950,11 @@ private fun fieldColors() = androidx.compose.material3.OutlinedTextFieldDefaults
 
 private fun SoundTarget.label(): String = when (this) {
     SoundTarget.THROW -> "Падение"
-    SoundTarget.SHAKE -> "Тряска"
     SoundTarget.SLAP -> "Шлепок"
 }
 
 private fun SoundTarget.toAssignTarget(): AssignTarget = when (this) {
     SoundTarget.THROW -> AssignTarget.THROW
-    SoundTarget.SHAKE -> AssignTarget.SHAKE
     SoundTarget.SLAP -> AssignTarget.SLAP
 }
 
@@ -1983,7 +1963,6 @@ private fun currentAssignmentFor(
     settings: AppSettings,
 ): SoundAssignment = when (target) {
     SoundTarget.THROW -> settings.throwSound
-    SoundTarget.SHAKE -> settings.shakeSound
     SoundTarget.SLAP -> settings.slapSound
 }
 

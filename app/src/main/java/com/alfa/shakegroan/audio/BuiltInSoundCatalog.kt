@@ -35,8 +35,6 @@ object BuiltInSoundCatalog {
 
     fun cleanSoundById(id: String): BundledSound? = cleanSounds.firstOrNull { it.id == id }
 
-    fun defaultShakeAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_doh1" })
-
     fun defaultThrowAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_tom_scream" })
 
     fun defaultSlapAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_untitled2" })

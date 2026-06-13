@@ -1,31 +1,25 @@
 package com.alfa.shakegroan.motion
 
 import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.sqrt
 
 data class DetectorConfig(
-    val shakeEnabled: Boolean = true,
     val throwEnabled: Boolean = true,
     val slapEnabled: Boolean = true,
-    val shakeDeltaThreshold: Float = 13.5f,
     val throwImpactThreshold: Float = 95.0f,
     val slapImpactThreshold: Float = 18.0f,
+    val slapImpactDeltaThreshold: Float = 8.0f,
+    val slapSettleDeltaThreshold: Float = 12.0f,
     val slapConfirmationWindowMs: Long = 90L,
     val freeFallThreshold: Float = 4.0f,
-    val gyroShakeThreshold: Float = 3.5f,
     val gyroThrowThreshold: Float = 1.8f,
     val gyroThrowImpactBonus: Float = 3.0f,
     val gyroFreshnessMs: Long = 180L,
-    val requiredShakePeaks: Int = 3,
-    val shakeWindowMs: Long = 850L,
-    val minGapBetweenShakePeaksMs: Long = 70L,
     val throwWindowMs: Long = 1200L,
     val cooldownMs: Int = 1000,
 )
 
 enum class MotionEventType {
-    SHAKE,
     THROW,
     SLAP,
 }
@@ -37,9 +31,6 @@ class MotionEventDetector(
 
     private var config = initialConfig
     private var lastMagnitude = 9.81f
-    private var shakeWindowStart = 0L
-    private var shakePeakCount = 0
-    private var lastShakePeakAt = Long.MIN_VALUE
     private var lastFreeFallAt = Long.MIN_VALUE
     private var lastTriggeredAt = Long.MIN_VALUE
     private var pendingSlapAt = Long.MIN_VALUE
@@ -72,15 +63,10 @@ class MotionEventDetector(
         } else {
             null
         }
-        val shakeEvent = if (throwEvent == null && slapEvent == null && config.shakeEnabled) {
-            detectShake(now, delta, gyroMagnitude)
-        } else {
-            null
-        }
-        if (throwEvent != null || shakeEvent != null) {
+        if (throwEvent != null) {
             clearPendingSlap()
         }
-        val detectedEvent = throwEvent ?: slapEvent ?: shakeEvent
+        val detectedEvent = throwEvent ?: slapEvent
 
         if (detectedEvent == null) {
             return null
@@ -94,39 +80,6 @@ class MotionEventDetector(
         return detectedEvent
     }
 
-    private fun detectShake(
-        now: Long,
-        delta: Float,
-        gyroMagnitude: Float,
-    ): MotionEventType? {
-        val strongAccelPeak = delta >= config.shakeDeltaThreshold
-        val gyroAssistedPeak = delta >= config.shakeDeltaThreshold * 0.65f &&
-            gyroMagnitude >= config.gyroShakeThreshold
-        if (!strongAccelPeak && !gyroAssistedPeak) {
-            return null
-        }
-
-        if (lastShakePeakAt != Long.MIN_VALUE && now - lastShakePeakAt < config.minGapBetweenShakePeaksMs) {
-            return null
-        }
-
-        if (shakeWindowStart == 0L || now - shakeWindowStart > config.shakeWindowMs) {
-            shakeWindowStart = now
-            shakePeakCount = 1
-        } else {
-            shakePeakCount += 1
-        }
-        lastShakePeakAt = now
-
-        if (shakePeakCount >= config.requiredShakePeaks) {
-            shakePeakCount = 0
-            shakeWindowStart = 0L
-            return MotionEventType.SHAKE
-        }
-
-        return null
-    }
-
     private fun detectSlap(
         now: Long,
         magnitude: Float,
@@ -137,8 +90,7 @@ class MotionEventDetector(
             return null
         }
 
-        val impactDeltaThreshold = max(6f, config.shakeDeltaThreshold * 0.6f)
-        val strongImpact = magnitude >= config.slapImpactThreshold && delta >= impactDeltaThreshold
+        val strongImpact = magnitude >= config.slapImpactThreshold && delta >= config.slapImpactDeltaThreshold
 
         if (strongImpact && pendingSlapAt == Long.MIN_VALUE) {
             pendingSlapAt = now
@@ -159,7 +111,7 @@ class MotionEventDetector(
             return null
         }
 
-        val settledDown = delta < config.shakeDeltaThreshold
+        val settledDown = delta < config.slapSettleDeltaThreshold
         if (!settledDown) {
             return null
         }

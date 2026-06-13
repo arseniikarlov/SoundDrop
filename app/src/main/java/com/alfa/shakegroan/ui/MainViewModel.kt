@@ -37,7 +37,7 @@ data class RecordingUiState(
 data class MainUiState(
     val settings: AppSettings = AppSettings(),
     val lastTriggerLabel: String = "Пока тишина",
-    val statusMessage: String = "Fall Ouch! готов: можно ставить отдельные звуки на тряску, падение и шлепок",
+    val statusMessage: String = "Fall Ouch! готов: можно ставить отдельные звуки на падение и шлепок",
     val clipDraft: EditableClipDraft? = null,
     val draftWaveform: List<Float> = emptyList(),
     val draftWaveformLoading: Boolean = false,
@@ -70,13 +70,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setArmed(value: Boolean) = updateSettings { copy(isArmed = value) }
 
-    fun setShakeEnabled(value: Boolean) = updateSettings { copy(shakeEnabled = value) }
-
     fun setThrowEnabled(value: Boolean) = updateSettings { copy(throwEnabled = value) }
 
     fun setSlapEnabled(value: Boolean) = updateSettings { copy(slapEnabled = value) }
-
-    fun setShakeThreshold(value: Float) = updateSettings { copy(shakeDeltaThreshold = value) }
 
     fun setThrowThreshold(value: Float) = updateSettings { copy(throwImpactThreshold = value) }
 
@@ -100,11 +96,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearCustomSounds() {
         updateSettings {
-            val fallbackShake = if (shakeSound.sourceType == SoundSourceType.CUSTOM) {
-                BuiltInSoundCatalog.defaultShakeAssignment()
-            } else {
-                shakeSound
-            }
             val fallbackThrow = if (throwSound.sourceType == SoundSourceType.CUSTOM) {
                 BuiltInSoundCatalog.defaultThrowAssignment()
             } else {
@@ -117,7 +108,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             copy(
                 customSounds = emptyList(),
-                shakeSound = fallbackShake,
                 throwSound = fallbackThrow,
                 slapSound = fallbackSlap,
             )
@@ -156,7 +146,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             copy(
                 customSounds = updatedSounds,
-                shakeSound = updateAssignment(shakeSound),
                 throwSound = updateAssignment(throwSound),
                 slapSound = updateAssignment(slapSound),
             )
@@ -169,11 +158,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteCustomSound(uri: String) {
         updateSettings {
-            val fallbackShake = if (shakeSound.sourceType == SoundSourceType.CUSTOM && shakeSound.reference == uri) {
-                BuiltInSoundCatalog.defaultShakeAssignment()
-            } else {
-                shakeSound
-            }
             val fallbackThrow = if (throwSound.sourceType == SoundSourceType.CUSTOM && throwSound.reference == uri) {
                 BuiltInSoundCatalog.defaultThrowAssignment()
             } else {
@@ -186,7 +170,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             copy(
                 customSounds = customSounds.filterNot { it.uri == uri },
-                shakeSound = fallbackShake,
                 throwSound = fallbackThrow,
                 slapSound = fallbackSlap,
             )
@@ -203,11 +186,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         updateSettings {
             when (target) {
-                AssignTarget.SHAKE -> copy(shakeSound = assignment)
                 AssignTarget.THROW -> copy(throwSound = assignment)
                 AssignTarget.SLAP -> copy(slapSound = assignment)
                 AssignTarget.ALL -> copy(
-                    shakeSound = assignment,
                     throwSound = assignment,
                     slapSound = assignment,
                 )
@@ -216,10 +197,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { current ->
             current.copy(
                 statusMessage = when (target) {
-                    AssignTarget.SHAKE -> "Поставил `${assignment.displayName}` на тряску"
                     AssignTarget.THROW -> "Поставил `${assignment.displayName}` на падение"
                     AssignTarget.SLAP -> "Поставил `${assignment.displayName}` на шлепок"
-                    AssignTarget.ALL -> "Поставил `${assignment.displayName}` на все три события"
+                    AssignTarget.ALL -> "Поставил `${assignment.displayName}` на оба события"
                 }
             )
         }
@@ -279,10 +259,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun previewAssignedSound(target: AssignTarget) {
         val settings = _uiState.value.settings
         val assignment = when (target) {
-            AssignTarget.SHAKE -> settings.shakeSound
             AssignTarget.THROW -> settings.throwSound
             AssignTarget.SLAP -> settings.slapSound
-            AssignTarget.ALL -> settings.shakeSound
+            AssignTarget.ALL -> settings.throwSound
         }
         toggleSoundPreview(assignment)
     }
@@ -537,7 +516,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun onMotionDetectedLocally(eventType: MotionEventType) {
         val settings = _uiState.value.settings
         val assignment = when (eventType) {
-            MotionEventType.SHAKE -> settings.shakeSound
             MotionEventType.THROW -> settings.throwSound
             MotionEventType.SLAP -> settings.slapSound
         }

@@ -112,13 +112,11 @@ class BackgroundMonitorService : Service() {
     private fun handleMotionEvent(eventType: MotionEventType) {
         currentSettings = repository.load()
         val assignment = when (eventType) {
-            MotionEventType.SHAKE -> currentSettings.shakeSound
             MotionEventType.THROW -> currentSettings.throwSound
             MotionEventType.SLAP -> currentSettings.slapSound
         }
         val source = soundPlayer.play(currentSettings, eventType)
         lastTriggerLabel = when (eventType) {
-            MotionEventType.SHAKE -> "Последнее событие: тряска -> ${assignment.displayName}"
             MotionEventType.THROW -> "Последнее событие: падение -> ${assignment.displayName}"
             MotionEventType.SLAP -> "Последнее событие: шлепок -> ${assignment.displayName}"
         }
