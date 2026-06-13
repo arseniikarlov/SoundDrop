@@ -10,15 +10,28 @@ class AppSettingsRepository(context: Context) {
     private val preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun load(): AppSettings {
+        val settingsVersion = preferences.getInt(KEY_SETTINGS_VERSION, 1)
+        val storedThrowThreshold = preferences.getFloat(KEY_THROW_THRESHOLD, 95.0f)
+        val storedCooldownMs = preferences.getInt(KEY_COOLDOWN_MS, 1000)
+        val throwImpactThreshold = when {
+            settingsVersion < CURRENT_SETTINGS_VERSION &&
+                (storedThrowThreshold == 22.0f || storedThrowThreshold == 19.0f || storedThrowThreshold == 47.5f) -> 95.0f
+            else -> storedThrowThreshold
+        }
+        val cooldownMs = if (settingsVersion < CURRENT_SETTINGS_VERSION && storedCooldownMs == 1400) {
+            1000
+        } else {
+            storedCooldownMs
+        }
         val snapshot = StoredSettingsSnapshot(
             isArmed = preferences.getBoolean(KEY_ARMED, false),
             shakeEnabled = preferences.getBoolean(KEY_SHAKE_ENABLED, true),
             throwEnabled = preferences.getBoolean(KEY_THROW_ENABLED, true),
             slapEnabled = preferences.getBoolean(KEY_SLAP_ENABLED, true),
             shakeDeltaThreshold = preferences.getFloat(KEY_SHAKE_THRESHOLD, 13.5f),
-            throwImpactThreshold = preferences.getFloat(KEY_THROW_THRESHOLD, 22.0f),
+            throwImpactThreshold = throwImpactThreshold,
             slapImpactThreshold = preferences.getFloat(KEY_SLAP_THRESHOLD, 18.0f),
-            cooldownMs = preferences.getInt(KEY_COOLDOWN_MS, 1400),
+            cooldownMs = cooldownMs,
             playbackVolume = preferences.getFloat(KEY_VOLUME, 0.9f),
             shakeSoundRaw = preferences.getString(KEY_SHAKE_SOUND, null),
             throwSoundRaw = preferences.getString(KEY_THROW_SOUND, null),
@@ -27,11 +40,16 @@ class AppSettingsRepository(context: Context) {
             legacyPlaybackModeRaw = preferences.getString(KEY_PLAYBACK_MODE, PlaybackMode.BUILT_IN.name),
             legacyBuiltInPackRaw = preferences.getString(KEY_BUILT_IN_PACK, BuiltInPack.CLEAN.name),
         )
-        return AppSettingsStorageMapper.fromSnapshot(snapshot)
+        val settings = AppSettingsStorageMapper.fromSnapshot(snapshot)
+        if (settingsVersion < CURRENT_SETTINGS_VERSION) {
+            save(settings)
+        }
+        return settings
     }
 
     fun save(settings: AppSettings) {
         preferences.edit()
+            .putInt(KEY_SETTINGS_VERSION, CURRENT_SETTINGS_VERSION)
             .putBoolean(KEY_ARMED, settings.isArmed)
             .putBoolean(KEY_SHAKE_ENABLED, settings.shakeEnabled)
             .putBoolean(KEY_THROW_ENABLED, settings.throwEnabled)
@@ -49,7 +67,9 @@ class AppSettingsRepository(context: Context) {
     }
 
     private companion object {
+        const val CURRENT_SETTINGS_VERSION = 4
         const val PREFS_NAME = "shake_groan_settings"
+        const val KEY_SETTINGS_VERSION = "settings_version"
         const val KEY_ARMED = "armed"
         const val KEY_SHAKE_ENABLED = "shake_enabled"
         const val KEY_THROW_ENABLED = "throw_enabled"
@@ -74,9 +94,9 @@ internal data class StoredSettingsSnapshot(
     val throwEnabled: Boolean = true,
     val slapEnabled: Boolean = true,
     val shakeDeltaThreshold: Float = 13.5f,
-    val throwImpactThreshold: Float = 22.0f,
+    val throwImpactThreshold: Float = 95.0f,
     val slapImpactThreshold: Float = 18.0f,
-    val cooldownMs: Int = 1400,
+    val cooldownMs: Int = 1000,
     val playbackVolume: Float = 0.9f,
     val shakeSoundRaw: String? = null,
     val throwSoundRaw: String? = null,

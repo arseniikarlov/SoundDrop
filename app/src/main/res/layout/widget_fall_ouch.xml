@@ -5,131 +5,57 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_glass_panel"
     android:gravity="center_vertical"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:orientation="horizontal"
+    android:paddingLeft="12dp"
+    android:paddingTop="10dp"
+    android:paddingRight="12dp"
+    android:paddingBottom="10dp">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/widget_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Fall Ouch!"
-                android:textColor="#F7FBFF"
-                android:textSize="21sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/widget_status_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Сервис пока выключен"
-                android:textColor="#F7FBFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+        android:layout_weight="1"
+        android:orientation="vertical">
 
         <TextView
-            android:id="@+id/widget_status_chip"
+            android:id="@+id/widget_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/widget_chip_idle"
-            android:paddingLeft="10dp"
-            android:paddingTop="6dp"
-            android:paddingRight="10dp"
-            android:paddingBottom="6dp"
-            android:text="ВЫКЛ"
+            android:text="Fall Ouch!"
             android:textColor="#F7FBFF"
-            android:textSize="11sp"
+            android:textSize="16sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_status_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Выключен"
+            android:textColor="#B6C4E3"
+            android:textSize="12sp" />
     </LinearLayout>
 
     <TextView
-        android:id="@+id/widget_status_subtitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="Нажми кнопку справа, чтобы быстро включить мониторинг"
-        android:textColor="#B6C4E3"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/widget_mode_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        android:text="Режим: Встроенный"
-        android:textColor="#75DEFF"
-        android:textSize="13sp"
+        android:id="@+id/widget_open_button"
+        android:layout_width="64dp"
+        android:layout_height="38dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/widget_button_secondary"
+        android:gravity="center"
+        android:text="Открыть"
+        android:textColor="#F7FBFF"
+        android:textSize="11sp"
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/widget_mode_detail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
-        android:text="Встроенный пакет: Не мат"
-        android:textColor="#F7FBFF"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/widget_library_detail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
-        android:text="Библиотека: 6 встроенных, своих файлов нет"
-        android:textColor="#B6C4E3"
-        android:textSize="12sp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/widget_open_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_button_secondary"
-            android:gravity="center"
-            android:paddingLeft="12dp"
-            android:paddingTop="10dp"
-            android:paddingRight="12dp"
-            android:paddingBottom="10dp"
-            android:text="Открыть"
-            android:textColor="#F7FBFF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_toggle_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@drawable/widget_button_primary"
-            android:gravity="center"
-            android:paddingLeft="12dp"
-            android:paddingTop="10dp"
-            android:paddingRight="12dp"
-            android:paddingBottom="10dp"
-            android:text="Включить"
-            android:textColor="#08111F"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+        android:id="@+id/widget_toggle_button"
+        android:layout_width="58dp"
+        android:layout_height="38dp"
+        android:background="@drawable/widget_button_primary"
+        android:gravity="center"
+        android:text="Вкл"
+        android:textColor="#08111F"
+        android:textSize="12sp"
+        android:textStyle="bold" />
 </LinearLayout>

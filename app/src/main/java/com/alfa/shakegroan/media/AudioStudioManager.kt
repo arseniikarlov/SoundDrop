@@ -73,6 +73,7 @@ class AudioStudioManager(
 
     private var previewPlayer: MediaPlayer? = null
     private var previewStopRunnable: Runnable? = null
+    private var previewProgressRunnable: Runnable? = null
     private var recorder: MediaRecorder? = null
     private var recordingFile: File? = null
 
@@ -185,6 +186,7 @@ class AudioStudioManager(
         startMs: Long,
         endMs: Long,
         volume: Float,
+        onProgress: (Float) -> Unit,
         onFinished: () -> Unit,
     ) {
         val selection = TrimSelectionNormalizer.normalize(
@@ -193,6 +195,7 @@ class AudioStudioManager(
             endMs = endMs,
         )
         stopPreview()
+        onProgress(0f)
 
         val uri = Uri.parse(draft.sourceUri)
         val player = MediaPlayer()
@@ -204,7 +207,14 @@ class AudioStudioManager(
             }
             mediaPlayer.start()
             val duration = max(250L, selection.endMs - selection.startMs)
+            startPreviewProgressUpdates(
+                player = mediaPlayer,
+                startMs = selection.startMs,
+                durationMs = duration,
+                onProgress = onProgress,
+            )
             previewStopRunnable = Runnable {
+                onProgress(1f)
                 stopPreview()
                 onFinished()
             }.also { runnable ->
@@ -212,6 +222,7 @@ class AudioStudioManager(
             }
         }
         player.setOnCompletionListener {
+            onProgress(1f)
             stopPreview()
             onFinished()
         }
@@ -229,9 +240,38 @@ class AudioStudioManager(
     fun stopPreview() {
         previewStopRunnable?.let(previewHandler::removeCallbacks)
         previewStopRunnable = null
+        stopPreviewProgressUpdates()
         previewPlayer?.stopSafely()
         previewPlayer?.release()
         previewPlayer = null
+    }
+
+    private fun startPreviewProgressUpdates(
+        player: MediaPlayer,
+        startMs: Long,
+        durationMs: Long,
+        onProgress: (Float) -> Unit,
+    ) {
+        stopPreviewProgressUpdates()
+        previewProgressRunnable = object : Runnable {
+            override fun run() {
+                val progress = runCatching {
+                    val elapsedMs = (player.currentPosition - startMs).coerceAtLeast(0)
+                    (elapsedMs / durationMs.toFloat()).coerceIn(0f, 1f)
+                }.getOrDefault(0f)
+                onProgress(progress)
+                val shouldContinue = previewPlayer === player &&
+                    runCatching { player.isPlaying }.getOrDefault(false)
+                if (shouldContinue) {
+                    previewHandler.postDelayed(this, 80L)
+                }
+            }
+        }.also(previewHandler::post)
+    }
+
+    private fun stopPreviewProgressUpdates() {
+        previewProgressRunnable?.let(previewHandler::removeCallbacks)
+        previewProgressRunnable = null
     }
 
     fun readWaveform(

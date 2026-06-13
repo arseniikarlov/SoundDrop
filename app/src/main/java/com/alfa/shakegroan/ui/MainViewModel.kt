@@ -41,12 +41,11 @@ data class MainUiState(
     val clipDraft: EditableClipDraft? = null,
     val draftWaveform: List<Float> = emptyList(),
     val draftWaveformLoading: Boolean = false,
-    val editWaveformKey: String? = null,
-    val editWaveform: List<Float> = emptyList(),
-    val editWaveformLoading: Boolean = false,
     val isProcessing: Boolean = false,
     val isPreviewingDraft: Boolean = false,
+    val draftPreviewProgress: Float = 0f,
     val previewingSoundKey: String? = null,
+    val previewProgress: Float = 0f,
     val recording: RecordingUiState = RecordingUiState(),
 )
 
@@ -236,18 +235,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val source = soundPlayer.preview(
             assignment = assignment,
             volume = _uiState.value.settings.playbackVolume,
-        ) {
-            _uiState.update { current ->
-                if (current.previewingSoundKey == key) {
-                    current.copy(previewingSoundKey = null)
-                } else {
-                    current
+            onFinished = {
+                _uiState.update { current ->
+                    if (current.previewingSoundKey == key) {
+                        current.copy(
+                            previewingSoundKey = null,
+                            previewProgress = 0f,
+                        )
+                    } else {
+                        current
+                    }
                 }
-            }
-        }
+            },
+            onProgress = { progress ->
+                _uiState.update { current ->
+                    if (current.previewingSoundKey == key) {
+                        current.copy(previewProgress = progress)
+                    } else {
+                        current
+                    }
+                }
+            },
+        )
         _uiState.update { current ->
             current.copy(
                 previewingSoundKey = key,
+                previewProgress = 0f,
                 statusMessage = playbackMessage("Предпрослушка", source, assignment.displayName)
             )
         }
@@ -255,7 +268,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun stopSoundPreview() {
         soundPlayer.stopActivePlayback()
-        _uiState.update { current -> current.copy(previewingSoundKey = null) }
+        _uiState.update { current ->
+            current.copy(
+                previewingSoundKey = null,
+                previewProgress = 0f,
+            )
+        }
     }
 
     fun previewAssignedSound(target: AssignTarget) {
@@ -390,13 +408,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 startMs = startMs,
                 endMs = endMs,
                 volume = _uiState.value.settings.playbackVolume,
-            ) {
-                _uiState.update { current -> current.copy(isPreviewingDraft = false) }
-            }
+                onProgress = { progress ->
+                    _uiState.update { current ->
+                        if (current.isPreviewingDraft) {
+                            current.copy(draftPreviewProgress = progress)
+                        } else {
+                            current
+                        }
+                    }
+                },
+                onFinished = {
+                    _uiState.update { current ->
+                        current.copy(
+                            isPreviewingDraft = false,
+                            draftPreviewProgress = 0f,
+                        )
+                    }
+                },
+            )
         }.onSuccess {
             _uiState.update { current ->
                 current.copy(
                     isPreviewingDraft = true,
+                    draftPreviewProgress = 0f,
                     statusMessage = "Слушаю выбранный фрагмент"
                 )
             }
@@ -404,6 +438,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update { current ->
                 current.copy(
                     isPreviewingDraft = false,
+                    draftPreviewProgress = 0f,
                     statusMessage = error.message ?: "Не удалось проиграть фрагмент"
                 )
             }
@@ -412,37 +447,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun stopDraftPreview() {
         audioStudio.stopPreview()
-        _uiState.update { current -> current.copy(isPreviewingDraft = false) }
-    }
-
-    fun loadEditWaveform(uriString: String) {
-        if (_uiState.value.editWaveformKey == uriString && _uiState.value.editWaveform.isNotEmpty()) {
-            return
-        }
-
         _uiState.update { current ->
             current.copy(
-                editWaveformKey = uriString,
-                editWaveform = emptyList(),
-                editWaveformLoading = true,
+                isPreviewingDraft = false,
+                draftPreviewProgress = 0f,
             )
-        }
-
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                runCatching { audioStudio.readWaveform(uriString) }
-            }
-            _uiState.update { current ->
-                if (current.editWaveformKey != uriString) {
-                    current
-                } else {
-                    current.copy(
-                        editWaveform = result.getOrDefault(emptyList()),
-                        editWaveformLoading = false,
-                        statusMessage = result.exceptionOrNull()?.message ?: current.statusMessage,
-                    )
-                }
-            }
         }
     }
 
@@ -478,6 +487,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         draftWaveformLoading = false,
                         isProcessing = false,
                         isPreviewingDraft = false,
+                        draftPreviewProgress = 0f,
                     )
                 }
             }.onFailure { error ->
@@ -500,6 +510,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 draftWaveform = emptyList(),
                 draftWaveformLoading = false,
                 isPreviewingDraft = false,
+                draftPreviewProgress = 0f,
                 statusMessage = "Черновик звука убран"
             )
         }
@@ -569,6 +580,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 draftWaveform = emptyList(),
                 draftWaveformLoading = true,
                 isPreviewingDraft = false,
+                draftPreviewProgress = 0f,
             )
         }
         loadDraftWaveform(draft)

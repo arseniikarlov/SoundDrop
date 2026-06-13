@@ -49,9 +49,9 @@ data class AppSettings(
     val throwEnabled: Boolean = true,
     val slapEnabled: Boolean = true,
     val shakeDeltaThreshold: Float = 13.5f,
-    val throwImpactThreshold: Float = 22.0f,
+    val throwImpactThreshold: Float = 95.0f,
     val slapImpactThreshold: Float = 18.0f,
-    val cooldownMs: Int = 1400,
+    val cooldownMs: Int = 1000,
     val playbackVolume: Float = 0.9f,
     val shakeSound: SoundAssignment = SoundAssignment(
         sourceType = SoundSourceType.BUILT_IN_CLEAN,

@@ -43,24 +43,20 @@ object FallOuchWidgetUpdater {
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_fall_ouch)
         val isArmed = settings.isArmed
-        views.setTextViewText(R.id.widget_status_chip, if (isArmed) "АКТИВЕН" else "ВЫКЛ")
-        views.setInt(
-            R.id.widget_status_chip,
-            "setBackgroundResource",
-            if (isArmed) R.drawable.widget_chip_active else R.drawable.widget_chip_idle
-        )
         views.setTextViewText(
             R.id.widget_status_title,
-            if (isArmed) "Сервис слушает падения и шлепки" else "Сервис пока выключен"
+            if (isArmed) "Мониторинг включен" else "Мониторинг выключен"
         )
-        views.setTextViewText(
-            R.id.widget_status_subtitle,
-            if (isArmed) "Работает даже в фоне, пока висит уведомление" else "Нажми кнопку справа, чтобы быстро включить мониторинг"
+        views.setTextViewText(R.id.widget_toggle_button, if (isArmed) "Выкл" else "Вкл")
+        views.setInt(
+            R.id.widget_toggle_button,
+            "setBackgroundResource",
+            if (isArmed) R.drawable.widget_button_secondary else R.drawable.widget_button_primary
         )
-        views.setTextViewText(R.id.widget_mode_title, "Тряска: ${settings.shakeSound.displayName}")
-        views.setTextViewText(R.id.widget_mode_detail, "Падение: ${settings.throwSound.displayName}")
-        views.setTextViewText(R.id.widget_library_detail, "Шлепок: ${settings.slapSound.displayName}")
-        views.setTextViewText(R.id.widget_toggle_button, if (isArmed) "Выключить" else "Включить")
+        views.setTextColor(
+            R.id.widget_toggle_button,
+            if (isArmed) 0xFFF7FBFF.toInt() else 0xFF08111F.toInt()
+        )
 
         val openAppPendingIntent = PendingIntent.getActivity(
             context,

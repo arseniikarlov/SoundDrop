@@ -1,14 +1,18 @@
 package com.alfa.shakegroan.service
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.alfa.shakegroan.MainActivity
@@ -29,13 +33,33 @@ class BackgroundMonitorService : Service() {
     private lateinit var soundPlayer: SoundPlayer
     private lateinit var sensorMonitor: MotionSensorMonitor
     private lateinit var notificationManager: NotificationManager
+    private lateinit var powerManager: PowerManager
+    private lateinit var screenOffWakeLock: PowerManager.WakeLock
     private var currentSettings: AppSettings = AppSettings()
     private var lastTriggerLabel: String = "Пока тишина"
+    private var screenStateReceiverRegistered = false
+
+    private val screenStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> updateScreenOffWakeLock()
+                Intent.ACTION_SCREEN_ON,
+                Intent.ACTION_USER_PRESENT -> releaseScreenOffWakeLock()
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         repository = AppSettingsRepository(applicationContext)
         notificationManager = getSystemService(NotificationManager::class.java)
+        powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        screenOffWakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "$packageName:FallOuchScreenOffMonitor"
+        ).apply {
+            setReferenceCounted(false)
+        }
         createNotificationChannel()
         soundPlayer = SoundPlayer(applicationContext) { info ->
             broadcastUpdate(
@@ -47,6 +71,7 @@ class BackgroundMonitorService : Service() {
         sensorMonitor = MotionSensorMonitor(applicationContext) { eventType ->
             handleMotionEvent(eventType)
         }
+        registerScreenStateReceiver()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -63,17 +88,20 @@ class BackgroundMonitorService : Service() {
             return START_NOT_STICKY
         }
 
-        startInForeground("Фоновый режим активен: приложение будет реагировать даже после сворачивания")
+        startInForeground("Работает при блокировке: приложение реагирует даже с выключенным экраном")
         sensorMonitor.start(currentSettings.toDetectorConfig())
+        updateScreenOffWakeLock()
         FallOuchWidgetUpdater.refreshAll(this)
         broadcastUpdate(
-            statusMessage = "Фоновый режим активен",
+            statusMessage = "Работает при блокировке",
             isArmed = true,
         )
         return START_STICKY
     }
 
     override fun onDestroy() {
+        releaseScreenOffWakeLock()
+        unregisterScreenStateReceiver()
         sensorMonitor.stop()
         soundPlayer.release()
         super.onDestroy()
@@ -109,6 +137,7 @@ class BackgroundMonitorService : Service() {
     }
 
     private fun stopMonitoring(fromUser: Boolean) {
+        releaseScreenOffWakeLock()
         sensorMonitor.stop()
         currentSettings = repository.load().copy(isArmed = false)
         repository.save(currentSettings)
@@ -159,7 +188,7 @@ class BackgroundMonitorService : Service() {
         .setContentText(statusMessage)
         .setStyle(
             NotificationCompat.BigTextStyle()
-                .bigText("$statusMessage\nВыключить можно из приложения или кнопкой в уведомлении.")
+                .bigText("$statusMessage\nДетекция работает при блокировке. Выключить можно из приложения или кнопкой в уведомлении.")
         )
         .setOngoing(true)
         .setOnlyAlertOnce(true)
@@ -205,6 +234,58 @@ class BackgroundMonitorService : Service() {
             description = "Уведомление для фонового мониторинга движения и звуковых реакций"
         }
         notificationManager.createNotificationChannel(channel)
+    }
+
+    private fun registerScreenStateReceiver() {
+        if (screenStateReceiverRegistered) {
+            return
+        }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(screenStateReceiver, filter)
+        }
+        screenStateReceiverRegistered = true
+    }
+
+    private fun unregisterScreenStateReceiver() {
+        if (!screenStateReceiverRegistered) {
+            return
+        }
+        runCatching {
+            unregisterReceiver(screenStateReceiver)
+        }
+        screenStateReceiverRegistered = false
+    }
+
+    private fun updateScreenOffWakeLock() {
+        currentSettings = repository.load()
+        val shouldHoldWakeLock = currentSettings.isArmed &&
+            !powerManager.isInteractive &&
+            sensorMonitor.requiresScreenOffWakeLock()
+        if (shouldHoldWakeLock) {
+            acquireScreenOffWakeLock()
+        } else {
+            releaseScreenOffWakeLock()
+        }
+    }
+
+    @SuppressLint("WakelockTimeout")
+    private fun acquireScreenOffWakeLock() {
+        if (!screenOffWakeLock.isHeld) {
+            screenOffWakeLock.acquire()
+        }
+    }
+
+    private fun releaseScreenOffWakeLock() {
+        if (screenOffWakeLock.isHeld) {
+            screenOffWakeLock.release()
+        }
     }
 
     private fun broadcastUpdate(

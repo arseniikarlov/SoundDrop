@@ -80,7 +80,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -300,7 +299,6 @@ fun ShakeGroanApp(
                     currentScreen = AppScreen.UPLOAD
                 },
                 onDeleteCustomSound = viewModel::deleteCustomSound,
-                onLoadEditWaveform = viewModel::loadEditWaveform,
                 onRenameCustomSound = viewModel::renameCustomSound,
             )
 
@@ -350,7 +348,9 @@ fun ShakeGroanApp(
                 onTogglePreview = viewModel::toggleDraftPreview,
                 onStopPreview = viewModel::stopDraftPreview,
                 onSave = { displayName, startMs, endMs ->
+                    returnToSoundPicker = false
                     viewModel.saveDraftToMySounds(displayName, startMs, endMs)
+                    currentScreen = AppScreen.UPLOAD
                 },
             )
 
@@ -377,15 +377,13 @@ fun ShakeGroanApp(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .blur(16.dp)
-                    .graphicsLayer(alpha = 0.55f)
             ) {
                 RenderMainScreen(backingScreen)
             }
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(Color.Black.copy(alpha = 0.38f))
+                    .background(Color.Black.copy(alpha = 0.08f))
             )
             RenderModalScreen(currentScreen)
         }
@@ -581,7 +579,6 @@ private fun SoundPickerScreen(
     onPreview: (SoundAssignment) -> Unit,
     onOpenUpload: () -> Unit,
     onDeleteCustomSound: (String) -> Unit,
-    onLoadEditWaveform: (String) -> Unit,
     onRenameCustomSound: (String, String) -> Unit,
 ) {
     val currentAssignment = currentAssignmentFor(target, state.settings)
@@ -632,12 +629,12 @@ private fun SoundPickerScreen(
                         title = option.title,
                         selected = isSelected,
                         playing = state.previewingSoundKey == optionKey,
+                        progress = if (state.previewingSoundKey == optionKey) state.previewProgress else 0f,
                         onClick = { onSelectedKeyChange(optionKey) },
                         onPreview = { onPreview(option.assignment) },
                         onEdit = {
                             renameUri = option.assignment.reference
                             renameValue = option.title
-                            onLoadEditWaveform(option.assignment.reference)
                         },
                         onDelete = {
                             onDeleteCustomSound(option.assignment.reference)
@@ -661,8 +658,6 @@ private fun SoundPickerScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 RenameCard(
                     value = renameValue,
-                    waveform = if (state.editWaveformKey == renameUri) state.editWaveform else emptyList(),
-                    waveformLoading = state.editWaveformKey == renameUri && state.editWaveformLoading,
                     onValueChange = { renameValue = it },
                     onCancel = {
                         renameUri = null
@@ -687,6 +682,7 @@ private fun SoundPickerScreen(
                         title = option.title,
                         selected = optionKey == assignmentKey(resolvedSelection),
                         playing = state.previewingSoundKey == optionKey,
+                        progress = if (state.previewingSoundKey == optionKey) state.previewProgress else 0f,
                         onClick = { onSelectedKeyChange(optionKey) },
                         onPreview = { onPreview(option.assignment) },
                     )
@@ -832,7 +828,7 @@ private fun RecordScreen(
                     text = if (state.recording.isRecording) {
                         "Запись ${formatDuration(state.recording.elapsedMs)}"
                     } else {
-                        "Удерживайте для записи"
+                        "Нажмите для записи"
                     },
                     style = MaterialTheme.typography.titleMedium,
                     color = AppTextMuted,
@@ -899,6 +895,7 @@ private fun TrimScreen(
                     startFraction = selection.startMs / durationMs.toFloat(),
                     endFraction = selection.endMs / durationMs.toFloat(),
                     samples = state.draftWaveform,
+                    playFraction = if (state.isPreviewingDraft) state.draftPreviewProgress else null,
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (state.draftWaveformLoading) {
@@ -972,7 +969,7 @@ private fun ProfileGuideScreen(
             Spacer(modifier = Modifier.height(16.dp))
             CardBlock {
                 Text(
-                    text = "Зайди во вкладку «настройки»\n\nНажми на режим, который хочешь установить и выбери понравившийся звук\n\nРазреши уведомления\n\nДобавь виджет для быстрого доступа",
+                    text = "Зайди во вкладку «настройки»\n\nНажми на режим, который хочешь установить и выбери понравившийся звук\n\nРазреши уведомления\n\nВключи режим на Home: звук работает даже при блокировке, пока висит уведомление\n\nЕсли на Samsung/Xiaomi звук не срабатывает с выключенным экраном, отключи оптимизацию батареи для Fall Ouch!\n\nДобавь виджет для быстрого доступа",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppTextSoft,
                     lineHeight = 24.sp
@@ -1345,6 +1342,7 @@ private fun SwipeableSoundPickRow(
     title: String,
     selected: Boolean,
     playing: Boolean,
+    progress: Float,
     onClick: () -> Unit,
     onPreview: () -> Unit,
     onEdit: () -> Unit,
@@ -1416,6 +1414,7 @@ private fun SwipeableSoundPickRow(
                 title = title,
                 selected = selected,
                 playing = playing,
+                progress = progress,
                 onClick = {
                     if (revealed) {
                         revealed = false
@@ -1455,36 +1454,80 @@ private fun SoundPickRow(
     title: String,
     selected: Boolean,
     playing: Boolean,
+    progress: Float,
     onClick: () -> Unit,
     onPreview: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = AppTextSoft,
-            modifier = Modifier.weight(1f)
-        )
-        if (selected) {
-            Icon(
-                imageVector = Icons.Rounded.Check,
-                contentDescription = null,
-                tint = AppTextSoft
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = AppTextSoft,
+                modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = AppTextSoft
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+            }
+            MiniCircleButton(
+                background = AppBackgroundSoft,
+                border = AppStrokeSoft,
+                icon = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                tint = AppAccent,
+                onClick = onPreview
+            )
         }
-        MiniCircleButton(
-            background = AppBackgroundSoft,
-            border = AppStrokeSoft,
-            icon = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-            tint = AppAccent,
-            onClick = onPreview
+        if (playing) {
+            Spacer(modifier = Modifier.height(8.dp))
+            PlaybackTimeline(progress = progress)
+        }
+    }
+}
+
+@Composable
+private fun PlaybackTimeline(progress: Float) {
+    val safeProgress = progress.coerceIn(0f, 1f)
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(14.dp)
+            .padding(horizontal = 2.dp)
+    ) {
+        val centerY = size.height / 2f
+        val startX = 2f
+        val endX = size.width - 2f
+        val activeEndX = startX + (endX - startX) * safeProgress
+        drawLine(
+            color = AppStrokeSoft,
+            start = Offset(startX, centerY),
+            end = Offset(endX, centerY),
+            strokeWidth = 4f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = AppAccent,
+            start = Offset(startX, centerY),
+            end = Offset(activeEndX, centerY),
+            strokeWidth = 4f,
+            cap = StrokeCap.Round
+        )
+        drawCircle(
+            color = AppAccent,
+            radius = 5f,
+            center = Offset(activeEndX, centerY)
         )
     }
 }
@@ -1511,30 +1554,13 @@ private fun AddLinkRow(
 @Composable
 private fun RenameCard(
     value: String,
-    waveform: List<Float>,
-    waveformLoading: Boolean,
     onValueChange: (String) -> Unit,
     onCancel: () -> Unit,
     onSave: () -> Unit,
 ) {
-    CardBlock {
-        WaveformPreview(
-            startFraction = 0f,
-            endFraction = 1f,
-            samples = waveform,
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (waveformLoading) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Строю волну...",
-                style = MaterialTheme.typography.bodySmall,
-                color = AppTextMuted,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
-        Spacer(modifier = Modifier.height(12.dp))
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -1618,6 +1644,7 @@ private fun WaveformPreview(
     startFraction: Float,
     endFraction: Float,
     samples: List<Float> = emptyList(),
+    playFraction: Float? = null,
     modifier: Modifier = Modifier,
 ) {
     Canvas(
@@ -1694,6 +1721,18 @@ private fun WaveformPreview(
             ),
             cornerRadius = CornerRadius(16f, 16f)
         )
+
+        if (playFraction != null) {
+            val playX = selectionStart +
+                (selectionEnd - selectionStart).coerceAtLeast(0f) * playFraction.coerceIn(0f, 1f)
+            drawLine(
+                color = AppAccent,
+                start = Offset(playX, 2f),
+                end = Offset(playX, size.height - 2f),
+                strokeWidth = 4f,
+                cap = StrokeCap.Round
+            )
+        }
     }
 }
 

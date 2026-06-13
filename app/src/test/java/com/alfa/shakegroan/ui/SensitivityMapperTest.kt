@@ -22,8 +22,8 @@ class SensitivityMapperTest {
         val high = SensitivityMapper.throwThreshold(1f)
 
         assertTrue(high < low)
-        assertEquals(30f, low, 0.001f)
-        assertEquals(14f, high, 0.001f)
+        assertEquals(150f, low, 0.001f)
+        assertEquals(70f, high, 0.001f)
     }
 
     @Test
@@ -39,11 +39,11 @@ class SensitivityMapperTest {
     @Test
     fun `progress round trips thresholds`() {
         val shake = SensitivityMapper.shakeProgress(13.5f)
-        val throwValue = SensitivityMapper.throwProgress(22f)
+        val throwValue = SensitivityMapper.throwProgress(95f)
         val slap = SensitivityMapper.slapProgress(18f)
 
         assertEquals(13.5f, SensitivityMapper.shakeThreshold(shake), 0.001f)
-        assertEquals(22f, SensitivityMapper.throwThreshold(throwValue), 0.001f)
+        assertEquals(95f, SensitivityMapper.throwThreshold(throwValue), 0.001f)
         assertEquals(18f, SensitivityMapper.slapThreshold(slap), 0.001f)
     }
 }

@@ -15,14 +15,14 @@ internal object SensitivityMapper {
 
     fun throwProgress(threshold: Float): Float = descendingProgress(
         threshold = threshold,
-        lowSensitivityThreshold = 30f,
-        highSensitivityThreshold = 14f,
+        lowSensitivityThreshold = 150f,
+        highSensitivityThreshold = 70f,
     )
 
     fun throwThreshold(progress: Float): Float = descendingThreshold(
         progress = progress,
-        lowSensitivityThreshold = 30f,
-        highSensitivityThreshold = 14f,
+        lowSensitivityThreshold = 150f,
+        highSensitivityThreshold = 70f,
     )
 
     fun slapProgress(threshold: Float): Float = descendingProgress(

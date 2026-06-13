@@ -21,7 +21,9 @@ class AppSettingsStorageMapperTest {
         )
 
         assertTrue(settings.slapEnabled)
+        assertEquals(95.0f, settings.throwImpactThreshold, 0.0f)
         assertEquals(18.0f, settings.slapImpactThreshold, 0.0f)
+        assertEquals(1000, settings.cooldownMs)
         assertEquals("clean_untitled2", settings.slapSound.reference)
         assertEquals("untitled2", settings.slapSound.displayName)
     }

@@ -54,6 +54,33 @@ class MotionEventDetectorTest {
     }
 
     @Test
+    fun `gyro assists shake when acceleration peaks are softer`() {
+        var now = 0L
+        val detector = MotionEventDetector(
+            initialConfig = DetectorConfig(
+                shakeEnabled = true,
+                throwEnabled = false,
+                slapEnabled = false,
+                shakeDeltaThreshold = 10f,
+                gyroShakeThreshold = 3f,
+                cooldownMs = 0
+            ),
+            clock = { now }
+        )
+
+        assertNull(detector.onSample(0f, 0f, 9.81f))
+        now += 100
+        detector.onGyroscopeSample(0f, 4f, 0f)
+        assertNull(detector.onSample(17f, 0f, 0f))
+        now += 100
+        detector.onGyroscopeSample(0f, 4f, 0f)
+        assertNull(detector.onSample(0f, 0f, 9.81f))
+        now += 100
+        detector.onGyroscopeSample(0f, 4f, 0f)
+        assertEquals(MotionEventType.SHAKE, detector.onSample(17f, 0f, 0f))
+    }
+
+    @Test
     fun `detects throw after free fall and impact`() {
         var now = 0L
         val detector = MotionEventDetector(
@@ -71,6 +98,51 @@ class MotionEventDetectorTest {
         assertNull(detector.onSample(0.3f, 0.2f, 0.4f))
         now += 200
         assertEquals(MotionEventType.THROW, detector.onSample(0f, 0f, 22f))
+    }
+
+    @Test
+    fun `gyro lowers throw impact threshold when phone rotates in flight`() {
+        var now = 0L
+        val detector = MotionEventDetector(
+            initialConfig = DetectorConfig(
+                shakeEnabled = false,
+                throwEnabled = true,
+                slapEnabled = true,
+                throwImpactThreshold = 20f,
+                gyroThrowThreshold = 1.5f,
+                gyroThrowImpactBonus = 3f,
+                cooldownMs = 0
+            ),
+            clock = { now }
+        )
+
+        assertNull(detector.onSample(0.3f, 0.2f, 0.4f))
+        now += 100
+        detector.onGyroscopeSample(0f, 2f, 0f)
+        assertEquals(MotionEventType.THROW, detector.onSample(0f, 0f, 18f))
+    }
+
+    @Test
+    fun `stale gyro sample does not lower throw threshold`() {
+        var now = 0L
+        val detector = MotionEventDetector(
+            initialConfig = DetectorConfig(
+                shakeEnabled = false,
+                throwEnabled = true,
+                slapEnabled = false,
+                throwImpactThreshold = 20f,
+                gyroThrowThreshold = 1.5f,
+                gyroThrowImpactBonus = 3f,
+                gyroFreshnessMs = 180L,
+                cooldownMs = 0
+            ),
+            clock = { now }
+        )
+
+        detector.onGyroscopeSample(0f, 2f, 0f)
+        assertNull(detector.onSample(0.3f, 0.2f, 0.4f))
+        now += 300
+        assertNull(detector.onSample(0f, 0f, 18f))
     }
 
     @Test
@@ -92,6 +164,26 @@ class MotionEventDetectorTest {
         now += 100
         assertNull(detector.onSample(0f, 0f, 20f))
         now += 170
+        assertEquals(MotionEventType.SLAP, detector.onSample(0f, 0f, 9.81f))
+    }
+
+    @Test
+    fun `detects slap quickly after isolated impact`() {
+        var now = 0L
+        val detector = MotionEventDetector(
+            initialConfig = DetectorConfig(
+                shakeEnabled = false,
+                throwEnabled = false,
+                slapEnabled = true,
+                cooldownMs = 0
+            ),
+            clock = { now }
+        )
+
+        assertNull(detector.onSample(0f, 0f, 9.81f))
+        now += 50
+        assertNull(detector.onSample(0f, 0f, 20f))
+        now += 90
         assertEquals(MotionEventType.SLAP, detector.onSample(0f, 0f, 9.81f))
     }
 
