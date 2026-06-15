@@ -45,9 +45,9 @@ object FallOuchWidgetUpdater {
         val isArmed = settings.isArmed
         views.setTextViewText(
             R.id.widget_status_title,
-            if (isArmed) "Мониторинг включен" else "Мониторинг выключен"
+            if (isArmed) "включен" else "выключен"
         )
-        views.setTextViewText(R.id.widget_toggle_button, if (isArmed) "Выкл" else "Вкл")
+        views.setTextViewText(R.id.widget_toggle_button, "⏻")
         views.setInt(
             R.id.widget_toggle_button,
             "setBackgroundResource",
@@ -78,7 +78,6 @@ object FallOuchWidgetUpdater {
         )
 
         views.setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent)
-        views.setOnClickPendingIntent(R.id.widget_open_button, openAppPendingIntent)
         views.setOnClickPendingIntent(R.id.widget_toggle_button, togglePendingIntent)
         return views
     }

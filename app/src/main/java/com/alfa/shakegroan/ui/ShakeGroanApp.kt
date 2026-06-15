@@ -106,6 +106,7 @@ import com.alfa.shakegroan.data.SoundAssignment
 import com.alfa.shakegroan.data.SoundSourceType
 import com.alfa.shakegroan.media.DraftSourceKind
 import com.alfa.shakegroan.media.TrimSelectionNormalizer
+import com.alfa.shakegroan.ui.theme.NunitoFontFamily
 import com.alfa.shakegroan.widget.FallOuchWidgetProvider
 import kotlin.math.roundToInt
 
@@ -163,18 +164,11 @@ fun ShakeGroanApp(
     var soundTarget by rememberSaveable { mutableStateOf(SoundTarget.THROW) }
     var stagedSoundKey by rememberSaveable { mutableStateOf<String?>(null) }
     var studioSourceScreen by rememberSaveable { mutableStateOf(AppScreen.UPLOAD_MENU) }
-    var returnToSoundPicker by rememberSaveable { mutableStateOf(false) }
+    var guideBackingScreen by rememberSaveable { mutableStateOf(AppScreen.PROFILE) }
 
     LaunchedEffect(uiState.clipDraft?.sourceUri) {
         if (uiState.clipDraft != null) {
             currentScreen = AppScreen.TRIM
-        }
-    }
-
-    LaunchedEffect(uiState.clipDraft, uiState.isProcessing, returnToSoundPicker) {
-        if (returnToSoundPicker && uiState.clipDraft == null && !uiState.isProcessing) {
-            currentScreen = AppScreen.SOUNDS
-            returnToSoundPicker = false
         }
     }
 
@@ -200,7 +194,7 @@ fun ShakeGroanApp(
         AppScreen.VIDEO_IMPORT,
         AppScreen.RECORD,
         AppScreen.TRIM -> AppScreen.UPLOAD
-        AppScreen.PROFILE_GUIDE -> AppScreen.PROFILE
+        AppScreen.PROFILE_GUIDE -> guideBackingScreen
         else -> null
     }
 
@@ -211,6 +205,12 @@ fun ShakeGroanApp(
                 state = uiState,
                 hasAccelerometer = hasAccelerometer,
                 onArmedChange = viewModel::setArmed,
+                onOpenGuide = {
+                    guideBackingScreen = AppScreen.HOME
+                    viewModel.markIntroGuideSeen()
+                    currentScreen = AppScreen.PROFILE_GUIDE
+                },
+                onDismissIntro = viewModel::markIntroGuideSeen,
             )
 
             AppScreen.SETTINGS -> SettingsScreen(
@@ -228,18 +228,15 @@ fun ShakeGroanApp(
             )
 
             AppScreen.PROFILE -> ProfileScreen(
-                onOpenGuide = { currentScreen = AppScreen.PROFILE_GUIDE },
+                onOpenGuide = {
+                    guideBackingScreen = AppScreen.PROFILE
+                    currentScreen = AppScreen.PROFILE_GUIDE
+                },
                 onPinWidget = { requestPinWidget(context) },
                 onInviteFriend = {
                     shareText(
                         context,
                         "Попробуй Fall Ouch! Проект и APK: https://github.com/arseniikarlov/SoundDrop"
-                    )
-                },
-                onSupport = {
-                    shareText(
-                        context,
-                        "Support по Fall Ouch!\n\nОпиши проблему, идею или вопрос."
                     )
                 },
                 onFeedback = {
@@ -292,8 +289,9 @@ fun ShakeGroanApp(
                 onPreview = viewModel::toggleSoundPreview,
                 onOpenUpload = {
                     viewModel.stopSoundPreview()
-                    returnToSoundPicker = true
-                    currentScreen = AppScreen.UPLOAD
+                    viewModel.discardClipDraft()
+                    stagedSoundKey = null
+                    onPickAudioFiles()
                 },
                 onDeleteCustomSound = viewModel::deleteCustomSound,
                 onRenameCustomSound = viewModel::renameCustomSound,
@@ -309,13 +307,19 @@ fun ShakeGroanApp(
                     studioSourceScreen = AppScreen.UPLOAD_MENU
                     currentScreen = AppScreen.RECORD
                 },
-                onUploadFiles = onPickAudioFiles,
+                onUploadFiles = {
+                    viewModel.discardClipDraft()
+                    onPickAudioFiles()
+                },
             )
 
             AppScreen.VIDEO_IMPORT -> VideoImportScreen(
                 state = uiState,
                 onBack = { currentScreen = AppScreen.UPLOAD_MENU },
-                onPickVideo = onPickVideoFile,
+                onPickVideo = {
+                    viewModel.discardClipDraft()
+                    onPickVideoFile()
+                },
                 onOpenTrim = { currentScreen = AppScreen.TRIM },
             )
 
@@ -345,14 +349,13 @@ fun ShakeGroanApp(
                 onTogglePreview = viewModel::toggleDraftPreview,
                 onStopPreview = viewModel::stopDraftPreview,
                 onSave = { displayName, startMs, endMs ->
-                    returnToSoundPicker = false
                     viewModel.saveDraftToMySounds(displayName, startMs, endMs)
                     currentScreen = AppScreen.UPLOAD
                 },
             )
 
             AppScreen.PROFILE_GUIDE -> ProfileGuideScreen(
-                onBack = { currentScreen = AppScreen.PROFILE }
+                onBack = { currentScreen = guideBackingScreen }
             )
 
             else -> Unit
@@ -396,6 +399,8 @@ private fun HomeScreen(
     state: MainUiState,
     hasAccelerometer: Boolean,
     onArmedChange: (Boolean) -> Unit,
+    onOpenGuide: () -> Unit,
+    onDismissIntro: () -> Unit,
 ) {
     val isOn = state.settings.isArmed && hasAccelerometer
 
@@ -429,7 +434,69 @@ private fun HomeScreen(
             },
             active = isOn && hasAccelerometer,
         )
+        if (!state.settings.hasSeenIntroGuide) {
+            Spacer(modifier = Modifier.height(20.dp))
+            HomeIntroPush(
+                onOpenGuide = onOpenGuide,
+                onDismiss = onDismissIntro,
+            )
+        }
         Spacer(modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun HomeIntroPush(
+    onOpenGuide: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = AppCard.copy(alpha = 0.92f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, AppStrokeSoft),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Первый запуск?",
+                style = MaterialTheme.typography.titleMedium,
+                color = AppTextSoft,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Открой короткую инструкцию: там есть советы, как подобрать чувствительность под свой телефон.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTextMuted,
+                lineHeight = 20.sp
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onOpenGuide,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppAccent,
+                        contentColor = Color(0xFF08111F)
+                    )
+                ) {
+                    Text("Открыть")
+                }
+                OutlinedButton(
+                    onClick = onDismiss,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = AppTextMuted
+                    )
+                ) {
+                    Text("Потом")
+                }
+            }
+        }
     }
 }
 
@@ -457,7 +524,7 @@ private fun SettingsScreen(
             }
         }
 
-        Text("Режимы", style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
+        Text("Чувствительность", style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
         CardBlock {
             ModeSliderRow(
                 title = "Падение",
@@ -531,7 +598,6 @@ private fun ProfileScreen(
     onOpenGuide: () -> Unit,
     onPinWidget: () -> Unit,
     onInviteFriend: () -> Unit,
-    onSupport: () -> Unit,
     onFeedback: () -> Unit,
 ) {
     PrimaryColumn {
@@ -542,8 +608,6 @@ private fun ProfileScreen(
             ProfileListRow("Установить виджет", onPinWidget)
             CardDivider()
             ProfileListRow("Пригласить друга", onInviteFriend)
-            CardDivider()
-            ProfileListRow("Поддержка", onSupport)
             CardDivider()
             ProfileListRow("Фидбек/ Оставить отзыв", onFeedback)
         }
@@ -728,13 +792,18 @@ private fun VideoImportScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
             MenuActionButton(
-                title = if (draft == null) "Выбрать видео" else draft.sourceLabel,
-                onClick = if (draft == null) onPickVideo else onOpenTrim
+                title = if (draft == null) "Выбрать видео" else "Выбрать другое видео",
+                onClick = onPickVideo
             )
             if (draft != null) {
                 Spacer(modifier = Modifier.height(10.dp))
+                MenuActionButton(
+                    title = "Обрезать текущий фрагмент",
+                    onClick = onOpenTrim
+                )
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Длительность ${formatDuration(draft.durationMs)}",
+                    text = "${draft.sourceLabel} · ${formatDuration(draft.durationMs)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = AppTextMuted
                 )
@@ -796,16 +865,6 @@ private fun RecordScreen(
             }
             Spacer(modifier = Modifier.height(24.dp))
             CardBlock {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    RecordingButton(
-                        isRecording = state.recording.isRecording,
-                        onClick = { onRecordAction(recordingName) },
-                    )
-                }
-                Spacer(modifier = Modifier.height(18.dp))
                 Text(
                     text = if (state.recording.isRecording) {
                         "Запись ${formatDuration(state.recording.elapsedMs)}"
@@ -817,6 +876,16 @@ private fun RecordScreen(
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
+                Spacer(modifier = Modifier.height(18.dp))
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    RecordingButton(
+                        isRecording = state.recording.isRecording,
+                        onClick = { onRecordAction(recordingName) },
+                    )
+                }
             }
         }
     }
@@ -934,7 +1003,7 @@ private fun ProfileGuideScreen(
     onBack: () -> Unit,
 ) {
     ModalScreenScaffold {
-        BottomSheetPanel {
+        BottomSheetPanel(scrollable = true) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Start
@@ -951,7 +1020,7 @@ private fun ProfileGuideScreen(
             Spacer(modifier = Modifier.height(16.dp))
             CardBlock {
                 Text(
-                    text = "Зайди во вкладку «настройки»\n\nНажми на режим, который хочешь установить и выбери понравившийся звук\n\nРазреши уведомления\n\nВключи режим на Home: звук работает даже при блокировке, пока висит уведомление\n\nЕсли на Samsung/Xiaomi звук не срабатывает с выключенным экраном, отключи оптимизацию батареи для Fall Ouch!\n\nДобавь виджет для быстрого доступа",
+                    text = "1. На главном экране нажми большую кнопку питания.\n\n2. Зайди в «Настройки» и выбери звуки отдельно для падения и шлепка.\n\n3. Покрути «Чувствительность». У разных телефонов датчики ведут себя по-разному: начни с середины, потом сделай чуть тише или резче под свой телефон.\n\n4. Разреши уведомления. Пока висит уведомление Fall Ouch!, приложение может слушать движения в фоне и при блокировке.\n\n5. Если на Samsung/Xiaomi звук молчит с выключенным экраном, отключи оптимизацию батареи для Fall Ouch!.\n\n6. Добавь маленький виджет, если хочешь быстро включать и выключать режим без открытия приложения.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppTextSoft,
                     lineHeight = 24.sp
@@ -1005,6 +1074,7 @@ private fun BrandLogo(
             fontSize = size,
             lineHeight = size * 0.82f,
             letterSpacing = (-3).sp,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Black
         )
         Text(
@@ -1013,6 +1083,7 @@ private fun BrandLogo(
             fontSize = if (compact) size * 0.78f else size,
             lineHeight = size * 0.82f,
             letterSpacing = (-3).sp,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Black
         )
     }

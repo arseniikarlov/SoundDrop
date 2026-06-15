@@ -44,6 +44,7 @@ data class SoundAssignment(
 
 data class AppSettings(
     val isArmed: Boolean = false,
+    val hasSeenIntroGuide: Boolean = false,
     val throwEnabled: Boolean = true,
     val slapEnabled: Boolean = true,
     val throwImpactThreshold: Float = 95.0f,

@@ -25,6 +25,7 @@ class AppSettingsRepository(context: Context) {
         }
         val snapshot = StoredSettingsSnapshot(
             isArmed = preferences.getBoolean(KEY_ARMED, false),
+            hasSeenIntroGuide = preferences.getBoolean(KEY_SEEN_INTRO_GUIDE, false),
             throwEnabled = preferences.getBoolean(KEY_THROW_ENABLED, true),
             slapEnabled = preferences.getBoolean(KEY_SLAP_ENABLED, true),
             throwImpactThreshold = throwImpactThreshold,
@@ -48,6 +49,7 @@ class AppSettingsRepository(context: Context) {
         preferences.edit()
             .putInt(KEY_SETTINGS_VERSION, CURRENT_SETTINGS_VERSION)
             .putBoolean(KEY_ARMED, settings.isArmed)
+            .putBoolean(KEY_SEEN_INTRO_GUIDE, settings.hasSeenIntroGuide)
             .putBoolean(KEY_THROW_ENABLED, settings.throwEnabled)
             .putBoolean(KEY_SLAP_ENABLED, settings.slapEnabled)
             .putFloat(KEY_THROW_THRESHOLD, settings.throwImpactThreshold)
@@ -65,6 +67,7 @@ class AppSettingsRepository(context: Context) {
         const val PREFS_NAME = "shake_groan_settings"
         const val KEY_SETTINGS_VERSION = "settings_version"
         const val KEY_ARMED = "armed"
+        const val KEY_SEEN_INTRO_GUIDE = "seen_intro_guide"
         const val KEY_THROW_ENABLED = "throw_enabled"
         const val KEY_SLAP_ENABLED = "slap_enabled"
         const val KEY_THROW_THRESHOLD = "throw_threshold"
@@ -81,6 +84,7 @@ class AppSettingsRepository(context: Context) {
 
 internal data class StoredSettingsSnapshot(
     val isArmed: Boolean = false,
+    val hasSeenIntroGuide: Boolean = false,
     val throwEnabled: Boolean = true,
     val slapEnabled: Boolean = true,
     val throwImpactThreshold: Float = 95.0f,
@@ -120,6 +124,7 @@ internal object AppSettingsStorageMapper {
 
         return AppSettings(
             isArmed = snapshot.isArmed,
+            hasSeenIntroGuide = snapshot.hasSeenIntroGuide,
             throwEnabled = snapshot.throwEnabled,
             slapEnabled = snapshot.slapEnabled,
             throwImpactThreshold = snapshot.throwImpactThreshold,

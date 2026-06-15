@@ -19,6 +19,7 @@ class AppSettingsStorageMapperTest {
             )
         )
 
+        assertEquals(false, settings.hasSeenIntroGuide)
         assertTrue(settings.slapEnabled)
         assertEquals(95.0f, settings.throwImpactThreshold, 0.0f)
         assertEquals(18.0f, settings.slapImpactThreshold, 0.0f)

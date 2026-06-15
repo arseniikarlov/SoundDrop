@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Fall Ouch!</string>
-    <string name="widget_description">Маленький виджет Fall Ouch! для включения мониторинга и открытия приложения</string>
+    <string name="widget_description">Виджет Fall Ouch! 1x1 для быстрого включения мониторинга</string>
 </resources>

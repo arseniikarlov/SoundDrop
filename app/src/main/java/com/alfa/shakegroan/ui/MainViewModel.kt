@@ -70,6 +70,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setArmed(value: Boolean) = updateSettings { copy(isArmed = value) }
 
+    fun markIntroGuideSeen() = updateSettings { copy(hasSeenIntroGuide = true) }
+
     fun setThrowEnabled(value: Boolean) = updateSettings { copy(throwEnabled = value) }
 
     fun setSlapEnabled(value: Boolean) = updateSettings { copy(slapEnabled = value) }
@@ -482,6 +484,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun discardClipDraft() {
         val draft = _uiState.value.clipDraft
+        if (draft == null) {
+            return
+        }
         audioStudio.discardDraft(draft)
         _uiState.update { current ->
             current.copy(
