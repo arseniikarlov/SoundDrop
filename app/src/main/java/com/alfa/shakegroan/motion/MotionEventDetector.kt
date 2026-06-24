@@ -6,8 +6,8 @@ import kotlin.math.sqrt
 data class DetectorConfig(
     val throwEnabled: Boolean = true,
     val slapEnabled: Boolean = true,
-    val throwImpactThreshold: Float = 95.0f,
-    val slapImpactThreshold: Float = 18.0f,
+    val throwImpactThreshold: Float = 67.0f,
+    val slapImpactThreshold: Float = 13.0f,
     val slapImpactDeltaThreshold: Float = 8.0f,
     val slapSettleDeltaThreshold: Float = 12.0f,
     val slapConfirmationWindowMs: Long = 90L,

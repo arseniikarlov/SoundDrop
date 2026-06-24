@@ -1,37 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/widget_glass_panel"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:paddingLeft="8dp"
-    android:paddingTop="8dp"
-    android:paddingRight="8dp"
-    android:paddingBottom="8dp">
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/widget_state_art"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/widget_description"
+        android:scaleType="fitCenter"
+        android:src="@drawable/widget_fall_ouch_off" />
 
     <TextView
-        android:id="@+id/widget_toggle_button"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:background="@drawable/widget_button_primary"
-        android:fontFamily="@font/nunito_black"
-        android:gravity="center"
-        android:text="⏻"
-        android:textColor="#08111F"
-        android:textSize="22sp"
-        android:textStyle="bold" />
+        android:id="@+id/widget_toggle_hitbox"
+        android:layout_width="92dp"
+        android:layout_height="92dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="28dp"
+        android:background="@android:color/transparent"
+        android:text="" />
 
-    <TextView
-        android:id="@+id/widget_status_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
-        android:fontFamily="@font/nunito_semibold"
-        android:gravity="center"
-        android:maxLines="1"
-        android:text="выключен"
-        android:textColor="#B6C4E3"
-        android:textSize="9sp" />
-</LinearLayout>
+</FrameLayout>

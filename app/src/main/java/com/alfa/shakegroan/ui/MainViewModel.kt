@@ -9,6 +9,8 @@ import com.alfa.shakegroan.audio.SoundPlayer
 import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.AppSettingsRepository
 import com.alfa.shakegroan.data.AssignTarget
+import com.alfa.shakegroan.data.AppLanguage
+import com.alfa.shakegroan.data.AppMetricsRepository
 import com.alfa.shakegroan.data.CustomSound
 import com.alfa.shakegroan.data.PickedSound
 import com.alfa.shakegroan.data.SoundAssignment
@@ -52,6 +54,7 @@ data class MainUiState(
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = AppSettingsRepository(application)
+    private val metricsRepository = AppMetricsRepository(application)
     private val soundPlayer = SoundPlayer(application) { message ->
         _uiState.update { current -> current.copy(statusMessage = message) }
     }
@@ -83,6 +86,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setCooldownMs(value: Int) = updateSettings { copy(cooldownMs = value) }
 
     fun setVolume(value: Float) = updateSettings { copy(playbackVolume = value) }
+
+    fun setLanguage(language: AppLanguage) {
+        updateSettings { copy(languageCode = language.code) }
+        metricsRepository.recordLanguageSelected(language)
+    }
 
     fun addCustomSounds(newSounds: List<PickedSound>) {
         addCustomSoundEntries(
@@ -544,9 +552,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         successMessage: String,
     ) {
         val uniqueByUri = (_uiState.value.settings.customSounds + sounds).distinctBy { it.uri }
+        val addedCount = uniqueByUri.size - _uiState.value.settings.customSounds.size
         updateSettings {
             copy(customSounds = uniqueByUri)
         }
+        metricsRepository.recordCustomSoundsAdded(
+            addedCount = addedCount,
+            currentCustomSoundsCount = uniqueByUri.size,
+        )
         _uiState.update { current ->
             current.copy(statusMessage = successMessage)
         }
@@ -626,6 +639,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun updateSettings(transform: AppSettings.() -> AppSettings) {
         _uiState.update { current ->
             val updatedSettings = current.settings.transform()
+            if (current.settings.isArmed != updatedSettings.isArmed) {
+                metricsRepository.recordArmedChange(updatedSettings.isArmed)
+            }
             repository.save(updatedSettings)
             syncBackgroundService(updatedSettings)
             FallOuchWidgetUpdater.refreshAll(getApplication())
@@ -647,7 +663,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         displayName: String,
     ): String = when (source) {
         PlaybackSource.BUILT_IN_CLEAN -> "$prefix: встроенный файл `$displayName`"
-        PlaybackSource.BUILT_IN_PROFANE -> "$prefix: матный режим `$displayName`"
         PlaybackSource.CUSTOM -> "$prefix: пользовательский звук `$displayName`"
     }
 }

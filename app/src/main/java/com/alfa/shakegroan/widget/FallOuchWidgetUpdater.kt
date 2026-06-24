@@ -10,6 +10,7 @@ import com.alfa.shakegroan.MainActivity
 import com.alfa.shakegroan.R
 import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.AppSettingsRepository
+import com.alfa.shakegroan.widget.FallOuchWidgetProvider.Companion.EXTRA_OPENED_FROM_WIDGET
 
 object FallOuchWidgetUpdater {
 
@@ -43,19 +44,9 @@ object FallOuchWidgetUpdater {
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_fall_ouch)
         val isArmed = settings.isArmed
-        views.setTextViewText(
-            R.id.widget_status_title,
-            if (isArmed) "включен" else "выключен"
-        )
-        views.setTextViewText(R.id.widget_toggle_button, "⏻")
-        views.setInt(
-            R.id.widget_toggle_button,
-            "setBackgroundResource",
-            if (isArmed) R.drawable.widget_button_secondary else R.drawable.widget_button_primary
-        )
-        views.setTextColor(
-            R.id.widget_toggle_button,
-            if (isArmed) 0xFFF7FBFF.toInt() else 0xFF08111F.toInt()
+        views.setImageViewResource(
+            R.id.widget_state_art,
+            if (isArmed) R.drawable.widget_fall_ouch_on else R.drawable.widget_fall_ouch_off
         )
 
         val openAppPendingIntent = PendingIntent.getActivity(
@@ -63,6 +54,7 @@ object FallOuchWidgetUpdater {
             appWidgetId,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(EXTRA_OPENED_FROM_WIDGET, true)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -78,7 +70,7 @@ object FallOuchWidgetUpdater {
         )
 
         views.setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent)
-        views.setOnClickPendingIntent(R.id.widget_toggle_button, togglePendingIntent)
+        views.setOnClickPendingIntent(R.id.widget_toggle_hitbox, togglePendingIntent)
         return views
     }
 

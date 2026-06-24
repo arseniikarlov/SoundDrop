@@ -3,26 +3,26 @@ package com.alfa.shakegroan.ui
 internal object SensitivityMapper {
     fun throwProgress(threshold: Float): Float = descendingProgress(
         threshold = threshold,
-        lowSensitivityThreshold = 150f,
-        highSensitivityThreshold = 70f,
+        lowSensitivityThreshold = 130f,
+        highSensitivityThreshold = 50f,
     )
 
     fun throwThreshold(progress: Float): Float = descendingThreshold(
         progress = progress,
-        lowSensitivityThreshold = 150f,
-        highSensitivityThreshold = 70f,
+        lowSensitivityThreshold = 130f,
+        highSensitivityThreshold = 50f,
     )
 
     fun slapProgress(threshold: Float): Float = descendingProgress(
         threshold = threshold,
-        lowSensitivityThreshold = 26f,
-        highSensitivityThreshold = 12f,
+        lowSensitivityThreshold = 24f,
+        highSensitivityThreshold = 9f,
     )
 
     fun slapThreshold(progress: Float): Float = descendingThreshold(
         progress = progress,
-        lowSensitivityThreshold = 26f,
-        highSensitivityThreshold = 12f,
+        lowSensitivityThreshold = 24f,
+        highSensitivityThreshold = 9f,
     )
 
     private fun descendingProgress(

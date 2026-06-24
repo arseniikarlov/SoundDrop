@@ -14,12 +14,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
+import com.alfa.shakegroan.data.AppMetricsRepository
 import com.alfa.shakegroan.data.PickedSound
 import com.alfa.shakegroan.data.displayNameWithoutAudioExtension
 import com.alfa.shakegroan.service.BackgroundMonitorService
 import com.alfa.shakegroan.ui.MainViewModel
 import com.alfa.shakegroan.ui.ShakeGroanApp
 import com.alfa.shakegroan.ui.theme.ShakeGroanTheme
+import com.alfa.shakegroan.widget.FallOuchWidgetProvider
 
 class MainActivity : ComponentActivity() {
 
@@ -89,6 +91,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        recordWidgetOpenIfNeeded(intent)
 
         setContent {
             ShakeGroanTheme {
@@ -110,6 +113,12 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        recordWidgetOpenIfNeeded(intent)
     }
 
     override fun onStart() {
@@ -162,6 +171,12 @@ class MainActivity : ComponentActivity() {
             }
 
             return it.getString(index)
+        }
+    }
+
+    private fun recordWidgetOpenIfNeeded(intent: Intent?) {
+        if (intent?.getBooleanExtra(FallOuchWidgetProvider.EXTRA_OPENED_FROM_WIDGET, false) == true) {
+            AppMetricsRepository(this).recordWidgetOpen()
         }
     }
 }

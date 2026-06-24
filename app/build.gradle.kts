@@ -34,6 +34,16 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    val metricsEndpoint = providers.gradleProperty("fallOuchMetricsEndpoint")
+        .orElse("http://89.125.81.120:8787/v1/events")
+    val metricsWriteKey = providers.gradleProperty("fallOuchMetricsWriteKey")
+        .orElse("e37c64c213d27cc598647558aa459ef4d1d5210c4173ebf4")
+    defaultConfig {
+        buildConfigField("String", "FALL_OUCH_METRICS_ENDPOINT", "\"${metricsEndpoint.get()}\"")
+        buildConfigField("String", "FALL_OUCH_METRICS_WRITE_KEY", "\"${metricsWriteKey.get()}\"")
     }
 }
 

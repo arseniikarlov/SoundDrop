@@ -21,11 +21,13 @@ class AppSettingsStorageMapperTest {
 
         assertEquals(false, settings.hasSeenIntroGuide)
         assertTrue(settings.slapEnabled)
-        assertEquals(95.0f, settings.throwImpactThreshold, 0.0f)
-        assertEquals(18.0f, settings.slapImpactThreshold, 0.0f)
+        assertEquals(67.0f, settings.throwImpactThreshold, 0.0f)
+        assertEquals(13.0f, settings.slapImpactThreshold, 0.0f)
         assertEquals(1000, settings.cooldownMs)
-        assertEquals("clean_untitled2", settings.slapSound.reference)
-        assertEquals("untitled2", settings.slapSound.displayName)
+        assertEquals("archive4_aaaaaa", settings.throwSound.reference)
+        assertEquals("AAAAAA", settings.throwSound.displayName)
+        assertEquals("archive4_oof", settings.slapSound.reference)
+        assertEquals("Oof!", settings.slapSound.displayName)
     }
 
     @Test
@@ -45,6 +47,20 @@ class AppSettingsStorageMapperTest {
         assertEquals(SoundSourceType.CUSTOM, settings.slapSound.sourceType)
         assertEquals("content://demo/custom-1", settings.slapSound.reference)
         assertEquals("my-hit", settings.slapSound.displayName)
+    }
+
+    @Test
+    fun `legacy profane assignment falls back to clean throw default`() {
+        val settings = AppSettingsStorageMapper.fromSnapshot(
+            StoredSettingsSnapshot(
+                throwSoundRaw = """{"sourceType":"BUILT_IN_PROFANE","reference":"profane_tts","displayName":"legacy"}""",
+                legacyBuiltInPackRaw = "PROFANE",
+            )
+        )
+
+        assertEquals(SoundSourceType.BUILT_IN_CLEAN, settings.throwSound.sourceType)
+        assertEquals("archive4_aaaaaa", settings.throwSound.reference)
+        assertEquals("AAAAAA", settings.throwSound.displayName)
     }
 
     @Test

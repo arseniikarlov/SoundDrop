@@ -5,14 +5,11 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.SoundAssignment
 import com.alfa.shakegroan.data.SoundSourceType
 import com.alfa.shakegroan.data.soundFor
 import com.alfa.shakegroan.motion.MotionEventType
-import java.util.Locale
 
 class SoundPlayer(
     context: Context,
@@ -25,48 +22,6 @@ class SoundPlayer(
     private var previewFinishedCallback: (() -> Unit)? = null
     private var previewProgressCallback: ((Float) -> Unit)? = null
     private var previewProgressRunnable: Runnable? = null
-    private var ttsReady = false
-    private var textToSpeech: TextToSpeech? = null
-
-    init {
-        textToSpeech = TextToSpeech(appContext) { status ->
-            ttsReady = status == TextToSpeech.SUCCESS
-            if (ttsReady) {
-                val engine = textToSpeech
-                if (engine == null) {
-                    onInfo("TTS инициализировался слишком рано")
-                } else {
-                    val localeResult = engine.setLanguage(Locale.forLanguageTag("ru"))
-                    if (localeResult == TextToSpeech.LANG_MISSING_DATA || localeResult == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        engine.language = Locale.US
-                    }
-                    engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                        override fun onStart(utteranceId: String?) = Unit
-
-                        override fun onDone(utteranceId: String?) {
-                            mainHandler.post { finishPreviewIfNeeded() }
-                        }
-
-                        @Deprecated("Deprecated in Java")
-                        override fun onError(utteranceId: String?) {
-                            mainHandler.post { finishPreviewIfNeeded() }
-                        }
-
-                        override fun onError(
-                            utteranceId: String?,
-                            errorCode: Int,
-                        ) {
-                            mainHandler.post { finishPreviewIfNeeded() }
-                        }
-                    })
-                    engine.setPitch(0.92f)
-                    engine.setSpeechRate(0.86f)
-                }
-            } else {
-                onInfo("TTS не инициализировался, матный встроенный режим может молчать")
-            }
-        }
-    }
 
     fun play(settings: AppSettings, eventType: MotionEventType): PlaybackSource {
         return playAssignment(settings.soundFor(eventType), settings.playbackVolume)
@@ -74,9 +29,6 @@ class SoundPlayer(
 
     fun release() {
         stopActivePlayback()
-        textToSpeech?.stop()
-        textToSpeech?.shutdown()
-        textToSpeech = null
     }
 
     fun preview(
@@ -93,7 +45,6 @@ class SoundPlayer(
         stopProgressUpdates(clearCallback = true)
         mediaPlayer?.release()
         mediaPlayer = null
-        textToSpeech?.stop()
     }
 
     private fun playAssignment(
@@ -106,17 +57,6 @@ class SoundPlayer(
             if (playCustomSound(assignment.reference, volume, onFinished, onProgress)) {
                 PlaybackSource.CUSTOM
             } else {
-                val fallback = BuiltInSoundCatalog.defaultSlapAssignment()
-                playCleanBundledSound(fallback.reference, volume, onFinished, onProgress)
-                PlaybackSource.BUILT_IN_CLEAN
-            }
-        }
-
-        SoundSourceType.BUILT_IN_PROFANE -> {
-            if (playProfaneSpeech(onFinished, onProgress)) {
-                PlaybackSource.BUILT_IN_PROFANE
-            } else {
-                onInfo("Матный TTS не готов, включаю встроенный не-матный набор")
                 val fallback = BuiltInSoundCatalog.defaultSlapAssignment()
                 playCleanBundledSound(fallback.reference, volume, onFinished, onProgress)
                 PlaybackSource.BUILT_IN_CLEAN
@@ -177,8 +117,9 @@ class SoundPlayer(
         onProgress: ((Float) -> Unit)?,
     ) {
         val sound = BuiltInSoundCatalog.cleanSoundById(soundId)
+            ?: BuiltInSoundCatalog.cleanSoundById(BuiltInSoundCatalog.defaultSlapAssignment().reference)
         if (sound == null) {
-            onInfo("Не найден ни один встроенный не-матный файл")
+            onInfo("Не найден ни один встроенный файл")
             return
         }
 
@@ -195,7 +136,7 @@ class SoundPlayer(
             setOnErrorListener { player, _, _ ->
                 player.release()
                 mediaPlayer = null
-                onInfo("Не удалось воспроизвести один из встроенных не-матных файлов")
+                onInfo("Не удалось воспроизвести один из встроенных файлов")
                 finishPreviewIfNeeded()
                 true
             }
@@ -203,31 +144,8 @@ class SoundPlayer(
             startProgressUpdates(this)
         }
         if (mediaPlayer == null) {
-            onInfo("Не удалось открыть встроенный не-матный файл")
+            onInfo("Не удалось открыть встроенный файл")
         }
-    }
-
-    private fun playProfaneSpeech(
-        onFinished: (() -> Unit)?,
-        onProgress: ((Float) -> Unit)?,
-    ): Boolean {
-        if (!ttsReady) {
-            return false
-        }
-
-        val engine = textToSpeech ?: return false
-        stopActivePlayback()
-        previewFinishedCallback = onFinished
-        previewProgressCallback = onProgress
-        onProgress?.invoke(0.12f)
-        engine.stop()
-        engine.speak(
-            BuiltInSoundCatalog.profanePhrases.random(),
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            "swear-${System.currentTimeMillis()}"
-        )
-        return true
     }
 
     private fun finishPreviewIfNeeded() {
@@ -268,6 +186,5 @@ class SoundPlayer(
 
 enum class PlaybackSource {
     BUILT_IN_CLEAN,
-    BUILT_IN_PROFANE,
     CUSTOM,
 }

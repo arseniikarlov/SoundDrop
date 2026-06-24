@@ -11,12 +11,17 @@ class AppSettingsRepository(context: Context) {
 
     fun load(): AppSettings {
         val settingsVersion = preferences.getInt(KEY_SETTINGS_VERSION, 1)
-        val storedThrowThreshold = preferences.getFloat(KEY_THROW_THRESHOLD, 95.0f)
+        val storedThrowThreshold = preferences.getFloat(KEY_THROW_THRESHOLD, DEFAULT_THROW_THRESHOLD)
+        val storedSlapThreshold = preferences.getFloat(KEY_SLAP_THRESHOLD, DEFAULT_SLAP_THRESHOLD)
         val storedCooldownMs = preferences.getInt(KEY_COOLDOWN_MS, 1000)
         val throwImpactThreshold = when {
             settingsVersion < CURRENT_SETTINGS_VERSION &&
-                (storedThrowThreshold == 22.0f || storedThrowThreshold == 19.0f || storedThrowThreshold == 47.5f) -> 95.0f
+                (storedThrowThreshold == 22.0f || storedThrowThreshold == 19.0f || storedThrowThreshold == 47.5f || storedThrowThreshold == 95.0f) -> DEFAULT_THROW_THRESHOLD
             else -> storedThrowThreshold
+        }
+        val slapImpactThreshold = when {
+            settingsVersion < CURRENT_SETTINGS_VERSION && storedSlapThreshold == 18.0f -> DEFAULT_SLAP_THRESHOLD
+            else -> storedSlapThreshold
         }
         val cooldownMs = if (settingsVersion < CURRENT_SETTINGS_VERSION && storedCooldownMs == 1400) {
             1000
@@ -29,9 +34,10 @@ class AppSettingsRepository(context: Context) {
             throwEnabled = preferences.getBoolean(KEY_THROW_ENABLED, true),
             slapEnabled = preferences.getBoolean(KEY_SLAP_ENABLED, true),
             throwImpactThreshold = throwImpactThreshold,
-            slapImpactThreshold = preferences.getFloat(KEY_SLAP_THRESHOLD, 18.0f),
+            slapImpactThreshold = slapImpactThreshold,
             cooldownMs = cooldownMs,
             playbackVolume = preferences.getFloat(KEY_VOLUME, 0.9f),
+            languageCode = preferences.getString(KEY_LANGUAGE, null),
             throwSoundRaw = preferences.getString(KEY_THROW_SOUND, null),
             slapSoundRaw = preferences.getString(KEY_SLAP_SOUND, null),
             customSoundsRaw = preferences.getString(KEY_CUSTOM_SOUNDS, null),
@@ -56,6 +62,7 @@ class AppSettingsRepository(context: Context) {
             .putFloat(KEY_SLAP_THRESHOLD, settings.slapImpactThreshold)
             .putInt(KEY_COOLDOWN_MS, settings.cooldownMs)
             .putFloat(KEY_VOLUME, settings.playbackVolume)
+            .putString(KEY_LANGUAGE, settings.languageCode)
             .putString(KEY_THROW_SOUND, AppSettingsStorageMapper.encodeAssignment(settings.throwSound))
             .putString(KEY_SLAP_SOUND, AppSettingsStorageMapper.encodeAssignment(settings.slapSound))
             .putString(KEY_CUSTOM_SOUNDS, AppSettingsStorageMapper.encodeCustomSounds(settings.customSounds))
@@ -63,7 +70,9 @@ class AppSettingsRepository(context: Context) {
     }
 
     private companion object {
-        const val CURRENT_SETTINGS_VERSION = 4
+        const val CURRENT_SETTINGS_VERSION = 5
+        const val DEFAULT_THROW_THRESHOLD = 67.0f
+        const val DEFAULT_SLAP_THRESHOLD = 13.0f
         const val PREFS_NAME = "shake_groan_settings"
         const val KEY_SETTINGS_VERSION = "settings_version"
         const val KEY_ARMED = "armed"
@@ -74,6 +83,7 @@ class AppSettingsRepository(context: Context) {
         const val KEY_SLAP_THRESHOLD = "slap_threshold"
         const val KEY_COOLDOWN_MS = "cooldown_ms"
         const val KEY_VOLUME = "volume"
+        const val KEY_LANGUAGE = "language"
         const val KEY_THROW_SOUND = "throw_sound"
         const val KEY_SLAP_SOUND = "slap_sound"
         const val KEY_PLAYBACK_MODE = "playback_mode"
@@ -87,10 +97,11 @@ internal data class StoredSettingsSnapshot(
     val hasSeenIntroGuide: Boolean = false,
     val throwEnabled: Boolean = true,
     val slapEnabled: Boolean = true,
-    val throwImpactThreshold: Float = 95.0f,
-    val slapImpactThreshold: Float = 18.0f,
+    val throwImpactThreshold: Float = 67.0f,
+    val slapImpactThreshold: Float = 13.0f,
     val cooldownMs: Int = 1000,
     val playbackVolume: Float = 0.9f,
+    val languageCode: String? = null,
     val throwSoundRaw: String? = null,
     val slapSoundRaw: String? = null,
     val customSoundsRaw: String? = null,
@@ -105,22 +116,18 @@ internal object AppSettingsStorageMapper {
         val legacyPlaybackMode = snapshot.legacyPlaybackModeRaw
             ?.let { raw -> PlaybackMode.entries.firstOrNull { it.name == raw } }
             ?: PlaybackMode.BUILT_IN
-        val legacyBuiltInPack = snapshot.legacyBuiltInPackRaw
-            ?.let { raw -> BuiltInPack.entries.firstOrNull { it.name == raw } }
-            ?: BuiltInPack.CLEAN
-
         val defaultThrowSound = legacyDefaultAssignment(
             event = DefaultEvent.THROW,
             customSounds = customSounds,
             playbackMode = legacyPlaybackMode,
-            builtInPack = legacyBuiltInPack,
         )
         val defaultSlapSound = legacyDefaultAssignment(
             event = DefaultEvent.SLAP,
             customSounds = customSounds,
             playbackMode = legacyPlaybackMode,
-            builtInPack = legacyBuiltInPack,
         )
+
+        val throwSound = decodeAssignment(snapshot.throwSoundRaw, defaultThrowSound).migrateLegacyDefaultThrow(defaultThrowSound)
 
         return AppSettings(
             isArmed = snapshot.isArmed,
@@ -131,7 +138,8 @@ internal object AppSettingsStorageMapper {
             slapImpactThreshold = snapshot.slapImpactThreshold,
             cooldownMs = snapshot.cooldownMs,
             playbackVolume = snapshot.playbackVolume,
-            throwSound = decodeAssignment(snapshot.throwSoundRaw, defaultThrowSound),
+            languageCode = AppLanguage.fromCode(snapshot.languageCode)?.code,
+            throwSound = throwSound,
             slapSound = decodeAssignment(snapshot.slapSoundRaw, defaultSlapSound),
             customSounds = customSounds,
         )
@@ -156,6 +164,9 @@ internal object AppSettingsStorageMapper {
                 .let { raw -> SoundSourceType.entries.firstOrNull { it.name == raw } }
                 ?: defaultValue.sourceType
             val reference = jsonObject.optString("reference", defaultValue.reference)
+            if (sourceType == SoundSourceType.BUILT_IN_CLEAN && BuiltInSoundCatalog.cleanSoundById(reference) == null) {
+                return@runCatching defaultValue
+            }
             val displayName = displayNameWithoutAudioExtension(
                 jsonObject.optString("displayName", defaultValue.displayName)
             )
@@ -203,14 +214,9 @@ internal object AppSettingsStorageMapper {
         event: DefaultEvent,
         customSounds: List<CustomSound>,
         playbackMode: PlaybackMode,
-        builtInPack: BuiltInPack,
     ): SoundAssignment {
         if (playbackMode == PlaybackMode.CUSTOM_ONLY && customSounds.isNotEmpty()) {
             return BuiltInSoundCatalog.assignmentFor(customSounds.first())
-        }
-
-        if (builtInPack == BuiltInPack.PROFANE) {
-            return BuiltInSoundCatalog.profaneAssignment()
         }
 
         if (event == DefaultEvent.THROW && playbackMode == PlaybackMode.MIXED && customSounds.isNotEmpty()) {
@@ -222,6 +228,20 @@ internal object AppSettingsStorageMapper {
             DefaultEvent.SLAP -> BuiltInSoundCatalog.defaultSlapAssignment()
         }
     }
+
+    private fun SoundAssignment.migrateLegacyDefaultThrow(defaultThrowSound: SoundAssignment): SoundAssignment {
+        return if (sourceType == SoundSourceType.BUILT_IN_CLEAN && reference in legacyThrowDefaultIds) {
+            defaultThrowSound
+        } else {
+            this
+        }
+    }
+
+    private val legacyThrowDefaultIds = setOf(
+        "archive_aaaaaa",
+        "archive_tom_scream2",
+        "clean_tom_scream",
+    )
 
     private enum class DefaultEvent {
         THROW,

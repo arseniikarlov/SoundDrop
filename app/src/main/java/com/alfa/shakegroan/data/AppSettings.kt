@@ -2,6 +2,7 @@ package com.alfa.shakegroan.data
 
 import com.alfa.shakegroan.motion.DetectorConfig
 import com.alfa.shakegroan.motion.MotionEventType
+import java.util.Locale
 
 enum class PlaybackMode {
     BUILT_IN,
@@ -11,13 +12,56 @@ enum class PlaybackMode {
 
 enum class BuiltInPack {
     CLEAN,
-    PROFANE,
 }
 
 enum class SoundSourceType {
     BUILT_IN_CLEAN,
-    BUILT_IN_PROFANE,
     CUSTOM,
+}
+
+enum class AppLanguage(
+    val code: String,
+    val label: String,
+) {
+    EN_US("en-US", "English US"),
+    ES("es", "Spanish"),
+    IT("it", "Italian"),
+    PT_BR("pt-BR", "Portuguese Brazil"),
+    DE("de", "German"),
+    FR("fr", "French"),
+    JA("ja", "Japanese"),
+    KO("ko", "Korean"),
+    RU("ru", "Russian"),
+    HI("hi", "Hindi"),
+    ID("id", "Indonesian");
+
+    companion object {
+        fun fromCode(code: String?): AppLanguage? {
+            if (code.isNullOrBlank()) {
+                return null
+            }
+            return entries.firstOrNull { language -> language.code.equals(code, ignoreCase = true) }
+        }
+
+        fun defaultForDevice(locale: Locale = Locale.getDefault()): AppLanguage {
+            val language = locale.language.lowercase(Locale.US)
+            val country = locale.country.uppercase(Locale.US)
+            return when {
+                language == "pt" && country == "BR" -> PT_BR
+                language == "en" -> EN_US
+                language == "es" -> ES
+                language == "it" -> IT
+                language == "de" -> DE
+                language == "fr" -> FR
+                language == "ja" -> JA
+                language == "ko" -> KO
+                language == "ru" -> RU
+                language == "hi" -> HI
+                language == "id" || language == "in" -> ID
+                else -> EN_US
+            }
+        }
+    }
 }
 
 enum class AssignTarget {
@@ -38,8 +82,8 @@ data class PickedSound(
 
 data class SoundAssignment(
     val sourceType: SoundSourceType = SoundSourceType.BUILT_IN_CLEAN,
-    val reference: String = "clean_doh1",
-    val displayName: String = "doh1",
+    val reference: String = "archive4_oof",
+    val displayName: String = "Oof!",
 )
 
 data class AppSettings(
@@ -47,22 +91,27 @@ data class AppSettings(
     val hasSeenIntroGuide: Boolean = false,
     val throwEnabled: Boolean = true,
     val slapEnabled: Boolean = true,
-    val throwImpactThreshold: Float = 95.0f,
-    val slapImpactThreshold: Float = 18.0f,
+    val throwImpactThreshold: Float = 67.0f,
+    val slapImpactThreshold: Float = 13.0f,
     val cooldownMs: Int = 1000,
     val playbackVolume: Float = 0.9f,
+    val languageCode: String? = null,
     val throwSound: SoundAssignment = SoundAssignment(
         sourceType = SoundSourceType.BUILT_IN_CLEAN,
-        reference = "clean_tom_scream",
-        displayName = "tom_scream",
+        reference = "archive4_aaaaaa",
+        displayName = "AAAAAA",
     ),
     val slapSound: SoundAssignment = SoundAssignment(
         sourceType = SoundSourceType.BUILT_IN_CLEAN,
-        reference = "clean_untitled2",
-        displayName = "untitled2",
+        reference = "archive4_oof",
+        displayName = "Oof!",
     ),
     val customSounds: List<CustomSound> = emptyList(),
 )
+
+fun AppSettings.effectiveLanguage(): AppLanguage {
+    return AppLanguage.fromCode(languageCode) ?: AppLanguage.defaultForDevice()
+}
 
 fun AppSettings.toDetectorConfig(): DetectorConfig = DetectorConfig(
     throwEnabled = throwEnabled,

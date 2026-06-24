@@ -20,6 +20,7 @@ import com.alfa.shakegroan.R
 import com.alfa.shakegroan.audio.BuiltInSoundCatalog
 import com.alfa.shakegroan.audio.PlaybackSource
 import com.alfa.shakegroan.audio.SoundPlayer
+import com.alfa.shakegroan.data.AppMetricsRepository
 import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.AppSettingsRepository
 import com.alfa.shakegroan.data.toDetectorConfig
@@ -30,6 +31,7 @@ import com.alfa.shakegroan.widget.FallOuchWidgetUpdater
 class BackgroundMonitorService : Service() {
 
     private lateinit var repository: AppSettingsRepository
+    private lateinit var metricsRepository: AppMetricsRepository
     private lateinit var soundPlayer: SoundPlayer
     private lateinit var sensorMonitor: MotionSensorMonitor
     private lateinit var notificationManager: NotificationManager
@@ -52,6 +54,7 @@ class BackgroundMonitorService : Service() {
     override fun onCreate() {
         super.onCreate()
         repository = AppSettingsRepository(applicationContext)
+        metricsRepository = AppMetricsRepository(applicationContext)
         notificationManager = getSystemService(NotificationManager::class.java)
         powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         screenOffWakeLock = powerManager.newWakeLock(
@@ -122,7 +125,6 @@ class BackgroundMonitorService : Service() {
         }
         val statusMessage = when (source) {
             PlaybackSource.BUILT_IN_CLEAN -> "Сработал встроенный файл ${BuiltInSoundCatalog.labelFor(assignment)}"
-            PlaybackSource.BUILT_IN_PROFANE -> "Сработал матный режим ${BuiltInSoundCatalog.labelFor(assignment)}"
             PlaybackSource.CUSTOM -> "Сработал пользовательский звук ${assignment.displayName}"
         }
 
@@ -138,6 +140,7 @@ class BackgroundMonitorService : Service() {
         releaseScreenOffWakeLock()
         sensorMonitor.stop()
         currentSettings = repository.load().copy(isArmed = false)
+        metricsRepository.recordArmedChange(false)
         repository.save(currentSettings)
         if (fromUser) {
             lastTriggerLabel = "Мониторинг остановлен"

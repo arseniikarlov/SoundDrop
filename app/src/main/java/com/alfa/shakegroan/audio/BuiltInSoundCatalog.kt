@@ -14,36 +14,21 @@ data class BundledSound(
 
 object BuiltInSoundCatalog {
     val cleanSounds = listOf(
-        BundledSound("clean_doh1", R.raw.clean_doh1, "doh1", isPopular = true),
-        BundledSound("clean_untitled2", R.raw.clean_untitled2, "untitled2"),
-        BundledSound("clean_tom_scream", R.raw.clean_tom_scream, "tom_scream", isPopular = true),
-        BundledSound("clean_o_kurwa", R.raw.clean_o_kurwa, "o-kurwa"),
-        BundledSound("clean_sdfds", R.raw.clean_sdfds, "sdfds"),
-        BundledSound("clean_gta_wasted_5", R.raw.clean_gta_wasted_5, "5-gta-wasted", isPopular = true),
+        BundledSound("archive4_aaaaaa", R.raw.archive4_aaaaaa, "AAAAAA"),
+        BundledSound("archive4_bruh", R.raw.archive4_bruh, "Bruh", isPopular = true),
+        BundledSound("archive4_explosion", R.raw.archive4_explosion, "Explosion", isPopular = true),
+        BundledSound("archive4_oof", R.raw.archive4_oof, "Oof!", isPopular = true),
+        BundledSound("archive4_sad", R.raw.archive4_sad, "Sad"),
+        BundledSound("archive4_tom_scream", R.raw.archive4_tom_scream, "Tom Scream", isPopular = true),
+        BundledSound("archive4_tom_scream2", R.raw.archive4_tom_scream2, "Tom Scream2", isPopular = true),
+        BundledSound("archive4_vine_boom", R.raw.archive4_vine_boom, "Vine Boom", isPopular = true),
     )
-
-    val profanePhrases = listOf(
-        "бля!",
-        "ёб твою мать!",
-        "какого хера!",
-        "пиздец!",
-        "сука, бля!",
-    )
-
-    const val PROFANE_SOUND_ID = "profane_tts"
-    const val PROFANE_SOUND_NAME = "Русский мат TTS"
 
     fun cleanSoundById(id: String): BundledSound? = cleanSounds.firstOrNull { it.id == id }
 
-    fun defaultThrowAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_tom_scream" })
+    fun defaultThrowAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "archive4_aaaaaa" })
 
-    fun defaultSlapAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "clean_untitled2" })
-
-    fun profaneAssignment(): SoundAssignment = SoundAssignment(
-        sourceType = SoundSourceType.BUILT_IN_PROFANE,
-        reference = PROFANE_SOUND_ID,
-        displayName = PROFANE_SOUND_NAME,
-    )
+    fun defaultSlapAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "archive4_oof" })
 
     fun assignmentFor(sound: BundledSound): SoundAssignment = SoundAssignment(
         sourceType = SoundSourceType.BUILT_IN_CLEAN,
@@ -59,13 +44,11 @@ object BuiltInSoundCatalog {
 
     fun labelFor(assignment: SoundAssignment): String = when (assignment.sourceType) {
         SoundSourceType.BUILT_IN_CLEAN -> cleanSoundById(assignment.reference)?.displayName ?: assignment.displayName
-        SoundSourceType.BUILT_IN_PROFANE -> PROFANE_SOUND_NAME
         SoundSourceType.CUSTOM -> assignment.displayName
     }
 
     fun isPopular(assignment: SoundAssignment): Boolean = when (assignment.sourceType) {
         SoundSourceType.BUILT_IN_CLEAN -> cleanSoundById(assignment.reference)?.isPopular == true
-        SoundSourceType.BUILT_IN_PROFANE -> true
         SoundSourceType.CUSTOM -> false
     }
 }

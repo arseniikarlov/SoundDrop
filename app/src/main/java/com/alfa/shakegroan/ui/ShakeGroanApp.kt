@@ -2,7 +2,6 @@ package com.alfa.shakegroan.ui
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
-import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -54,7 +53,6 @@ import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material.icons.rounded.Widgets
@@ -93,17 +91,21 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alfa.shakegroan.audio.BuiltInSoundCatalog
+import com.alfa.shakegroan.data.AppLanguage
+import com.alfa.shakegroan.data.AppMetricsRepository
 import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.AssignTarget
 import com.alfa.shakegroan.data.CustomSound
 import com.alfa.shakegroan.data.SoundAssignment
-import com.alfa.shakegroan.data.SoundSourceType
+import com.alfa.shakegroan.data.effectiveLanguage
 import com.alfa.shakegroan.media.DraftSourceKind
 import com.alfa.shakegroan.media.TrimSelectionNormalizer
 import com.alfa.shakegroan.ui.theme.NunitoFontFamily
@@ -134,6 +136,7 @@ private enum class AppScreen {
     RECORD,
     TRIM,
     PROFILE_GUIDE,
+    LANGUAGE,
 }
 
 private enum class SoundTarget {
@@ -189,7 +192,8 @@ fun ShakeGroanApp(
     }
 
     fun modalBackingScreen(screen: AppScreen): AppScreen? = when (screen) {
-        AppScreen.SOUNDS -> AppScreen.SETTINGS
+        AppScreen.SOUNDS,
+        AppScreen.LANGUAGE -> AppScreen.SETTINGS
         AppScreen.UPLOAD_MENU,
         AppScreen.VIDEO_IMPORT,
         AppScreen.RECORD,
@@ -221,6 +225,7 @@ fun ShakeGroanApp(
                 onThrowThresholdChange = viewModel::setThrowThreshold,
                 onSlapThresholdChange = viewModel::setSlapThreshold,
                 onVolumeChange = viewModel::setVolume,
+                onOpenLanguage = { currentScreen = AppScreen.LANGUAGE },
             )
 
             AppScreen.UPLOAD -> UploadScreen(
@@ -233,18 +238,6 @@ fun ShakeGroanApp(
                     currentScreen = AppScreen.PROFILE_GUIDE
                 },
                 onPinWidget = { requestPinWidget(context) },
-                onInviteFriend = {
-                    shareText(
-                        context,
-                        "Попробуй Fall Ouch! Проект и APK: https://github.com/arseniikarlov/SoundDrop"
-                    )
-                },
-                onFeedback = {
-                    shareText(
-                        context,
-                        "Фидбек по Fall Ouch!\n\nЧто понравилось:\nЧто улучшить:\nКаких звуков не хватает:"
-                    )
-                },
             )
 
             else -> Unit
@@ -291,7 +284,8 @@ fun ShakeGroanApp(
                     viewModel.stopSoundPreview()
                     viewModel.discardClipDraft()
                     stagedSoundKey = null
-                    onPickAudioFiles()
+                    studioSourceScreen = AppScreen.UPLOAD_MENU
+                    currentScreen = AppScreen.UPLOAD_MENU
                 },
                 onDeleteCustomSound = viewModel::deleteCustomSound,
                 onRenameCustomSound = viewModel::renameCustomSound,
@@ -358,6 +352,15 @@ fun ShakeGroanApp(
                 onBack = { currentScreen = guideBackingScreen }
             )
 
+            AppScreen.LANGUAGE -> LanguagePickerScreen(
+                selectedLanguage = uiState.settings.effectiveLanguage(),
+                onCancel = { currentScreen = AppScreen.SETTINGS },
+                onSelect = { language ->
+                    viewModel.setLanguage(language)
+                    currentScreen = AppScreen.SETTINGS
+                },
+            )
+
             else -> Unit
         }
     }
@@ -411,15 +414,22 @@ private fun HomeScreen(
             .padding(bottom = 92.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
-        BrandLogo(
-            isOn = isOn,
-            modifier = Modifier.fillMaxWidth(),
-            size = 88.sp,
-            compact = false,
-            alignCenter = true,
-        )
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(20.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BrandLogo(
+                isOn = isOn,
+                modifier = Modifier.fillMaxWidth(),
+                size = 82.sp,
+                compact = false,
+                alignCenter = true,
+            )
+        }
+        Spacer(modifier = Modifier.weight(0.7f))
         PowerHeroButton(
             isOn = isOn,
             enabled = hasAccelerometer,
@@ -509,6 +519,7 @@ private fun SettingsScreen(
     onThrowThresholdChange: (Float) -> Unit,
     onSlapThresholdChange: (Float) -> Unit,
     onVolumeChange: (Float) -> Unit,
+    onOpenLanguage: () -> Unit,
 ) {
     PrimaryColumn {
         ScreenTitle("Настройки")
@@ -551,6 +562,11 @@ private fun SettingsScreen(
                 progress = state.settings.playbackVolume,
                 onProgressChange = onVolumeChange,
             )
+        }
+
+        Text("Язык", style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
+        CardBlock {
+            SettingSoundRow("Язык приложения", state.settings.effectiveLanguage().label, onOpenLanguage)
         }
     }
 }
@@ -597,19 +613,90 @@ private fun UploadScreen(
 private fun ProfileScreen(
     onOpenGuide: () -> Unit,
     onPinWidget: () -> Unit,
-    onInviteFriend: () -> Unit,
-    onFeedback: () -> Unit,
 ) {
     PrimaryColumn {
         ScreenTitle("Профиль")
         CardBlock {
-            ProfileListRow("Инструкция по установке", onOpenGuide)
+            ProfileListRow("Описание и инструкция", onOpenGuide)
             CardDivider()
             ProfileListRow("Установить виджет", onPinWidget)
-            CardDivider()
-            ProfileListRow("Пригласить друга", onInviteFriend)
-            CardDivider()
-            ProfileListRow("Фидбек/ Оставить отзыв", onFeedback)
+        }
+    }
+}
+
+@Composable
+private fun LanguagePickerScreen(
+    selectedLanguage: AppLanguage,
+    onCancel: () -> Unit,
+    onSelect: (AppLanguage) -> Unit,
+) {
+    ModalScreenScaffold {
+        BottomSheetPanel(scrollable = true) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircleBackButton(onCancel)
+                Text(
+                    text = "Язык",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = AppTextSoft,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 34.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+            Text(
+                text = "По умолчанию берём язык устройства. Если его нет в списке, откроется English US.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTextMuted,
+                lineHeight = 20.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            CardBlock {
+                AppLanguage.entries.forEachIndexed { index, language ->
+                    LanguageOptionRow(
+                        language = language,
+                        selected = language == selectedLanguage,
+                        onClick = { onSelect(language) }
+                    )
+                    if (index != AppLanguage.entries.lastIndex) {
+                        CardDivider()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageOptionRow(
+    language: AppLanguage,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = language.label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) AppAccent else AppTextSoft,
+            modifier = Modifier.weight(1f)
+        )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = null,
+                tint = AppAccent,
+            )
         }
     }
 }
@@ -641,11 +728,7 @@ private fun SoundPickerScreen(
             title = it.displayName,
             isCustom = false,
         )
-    } + SoundOptionUi(
-        assignment = BuiltInSoundCatalog.profaneAssignment(),
-        title = BuiltInSoundCatalog.PROFANE_SOUND_NAME,
-        isCustom = false,
-    )
+    }
 
     val resolvedSelection = resolveAssignmentByKey(
         key = selectedKey,
@@ -657,13 +740,16 @@ private fun SoundPickerScreen(
     var renameValue by rememberSaveable { mutableStateOf("") }
 
     ModalScreenScaffold {
-        BottomSheetPanel(scrollable = true) {
-            TopActionBar(
-                title = target.label(),
-                onCancel = onCancel,
-                onSave = onSave,
-                saveEnabled = true,
-            )
+        StickyHeaderBottomSheetPanel(
+            header = {
+                TopActionBar(
+                    title = target.label(),
+                    onCancel = onCancel,
+                    onSave = onSave,
+                    saveEnabled = true,
+                )
+            }
+        ) {
             Spacer(modifier = Modifier.height(18.dp))
 
             SectionLabel("Мои звуки")
@@ -1012,7 +1098,7 @@ private fun ProfileGuideScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Инструкция по установке",
+                text = "Описание и инструкция",
                 style = MaterialTheme.typography.headlineMedium,
                 color = AppTextSoft,
                 fontWeight = FontWeight.Medium
@@ -1020,7 +1106,7 @@ private fun ProfileGuideScreen(
             Spacer(modifier = Modifier.height(16.dp))
             CardBlock {
                 Text(
-                    text = "1. На главном экране нажми большую кнопку питания.\n\n2. Зайди в «Настройки» и выбери звуки отдельно для падения и шлепка.\n\n3. Покрути «Чувствительность». У разных телефонов датчики ведут себя по-разному: начни с середины, потом сделай чуть тише или резче под свой телефон.\n\n4. Разреши уведомления. Пока висит уведомление Fall Ouch!, приложение может слушать движения в фоне и при блокировке.\n\n5. Если на Samsung/Xiaomi звук молчит с выключенным экраном, отключи оптимизацию батареи для Fall Ouch!.\n\n6. Добавь маленький виджет, если хочешь быстро включать и выключать режим без открытия приложения.",
+                    text = "1. Настройте «Чувствительность». На разных телефонах датчики могут работать по-разному. Если уменьшить чувствительность до минимума, эффект полностью отключится.\n\n2. Добавляйте свои звуки без ограничений. Вы можете записать звук через диктофон, загрузить его с телефона в любом формате или извлечь звук из видео — например, из скачанного ролика или записи экрана — и отредактировать его.\n\n3. Звуки можно редактировать и переименовывать. Для этого свайпните звук влево в меню выбора звуков.\n\n4. Загруженные звуки можно отправить другу — также свайпнув звук влево.\n\n5. Можно установить виджет для быстрого включения и выключения эффектов.\n\n6. Если что-то не работает или работает не так, как ожидалось, пожалуйста, напишите нам. Мы обязательно разберёмся и постараемся всё исправить. Это наше первое приложение, и ваша обратная связь очень важна для нас 🙂\n\n7. Если вам понравилось приложение и оно вызвало у вас улыбку, пожалуйста, оставьте отзыв.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppTextSoft,
                     lineHeight = 24.sp
@@ -1064,27 +1150,37 @@ private fun BrandLogo(
     alignCenter: Boolean,
 ) {
     val ouchColor = if (isOn) AppAccent else Color.White
+    val ouchSize = if (compact) size * 0.78f else size
+    val lineTightness = 0.46f
+    val overlap = with(LocalDensity.current) {
+        size.toDp() * if (compact) 0.2f else 0.38f
+    }
+    val fallStyle = TextStyle(
+        color = Color(0xFFE8E9EC),
+        fontSize = size,
+        lineHeight = size * lineTightness,
+        letterSpacing = (-3).sp,
+        fontFamily = NunitoFontFamily,
+        fontWeight = FontWeight.Black,
+        platformStyle = PlatformTextStyle(includeFontPadding = false),
+    )
+    val ouchStyle = fallStyle.copy(
+        color = ouchColor,
+        fontSize = ouchSize,
+        lineHeight = ouchSize * lineTightness,
+    )
     Column(
         modifier = modifier,
         horizontalAlignment = if (alignCenter) Alignment.CenterHorizontally else Alignment.Start
     ) {
         Text(
             text = "FALL",
-            color = Color(0xFFE8E9EC),
-            fontSize = size,
-            lineHeight = size * 0.82f,
-            letterSpacing = (-3).sp,
-            fontFamily = NunitoFontFamily,
-            fontWeight = FontWeight.Black
+            style = fallStyle,
         )
         Text(
             text = "OUCH!",
-            color = ouchColor,
-            fontSize = if (compact) size * 0.78f else size,
-            lineHeight = size * 0.82f,
-            letterSpacing = (-3).sp,
-            fontFamily = NunitoFontFamily,
-            fontWeight = FontWeight.Black
+            style = ouchStyle,
+            modifier = Modifier.offset(y = -overlap),
         )
     }
 }
@@ -1141,6 +1237,39 @@ private fun BottomSheetPanel(
             modifier = contentModifier,
             content = content
         )
+    }
+}
+
+@Composable
+private fun StickyHeaderBottomSheetPanel(
+    header: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        color = AppBackgroundSoft.copy(alpha = 0.96f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 760.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp)
+                    .padding(top = 18.dp),
+                content = header
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 18.dp)
+                    .padding(bottom = 18.dp),
+                content = content
+            )
+        }
     }
 }
 
@@ -1940,16 +2069,16 @@ private fun BottomDock(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BottomItem(Icons.Rounded.Home, "домой", currentScreen == AppScreen.HOME) {
+            BottomItem(Icons.Rounded.Home, "Домой", currentScreen == AppScreen.HOME) {
                 onScreenChange(AppScreen.HOME)
             }
-            BottomItem(Icons.Rounded.Settings, "настройки", currentScreen == AppScreen.SETTINGS) {
+            BottomItem(Icons.Rounded.Settings, "Настройки", currentScreen == AppScreen.SETTINGS) {
                 onScreenChange(AppScreen.SETTINGS)
             }
-            BottomItem(Icons.Rounded.CloudUpload, "загрузка", currentScreen == AppScreen.UPLOAD) {
+            BottomItem(Icons.Rounded.CloudUpload, "Загрузка", currentScreen == AppScreen.UPLOAD) {
                 onScreenChange(AppScreen.UPLOAD)
             }
-            BottomItem(Icons.Rounded.Person, "профиль", currentScreen == AppScreen.PROFILE) {
+            BottomItem(Icons.Rounded.Person, "Профиль", currentScreen == AppScreen.PROFILE) {
                 onScreenChange(AppScreen.PROFILE)
             }
         }
@@ -2052,8 +2181,7 @@ private fun resolveAssignmentByKey(
     }
 
     val allOptions = settings.customSounds.map(BuiltInSoundCatalog::assignmentFor) +
-        BuiltInSoundCatalog.cleanSounds.map(BuiltInSoundCatalog::assignmentFor) +
-        BuiltInSoundCatalog.profaneAssignment()
+        BuiltInSoundCatalog.cleanSounds.map(BuiltInSoundCatalog::assignmentFor)
 
     return allOptions.firstOrNull { assignmentKey(it) == key } ?: fallback
 }
@@ -2065,23 +2193,10 @@ private fun formatDuration(durationMs: Long): String {
     return "%02d:%02d".format(minutes, seconds)
 }
 
-private fun shareText(
-    context: android.content.Context,
-    text: String,
-) {
-    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, text)
-    }
-    context.startActivity(
-        Intent.createChooser(shareIntent, "Поделиться")
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    )
-}
-
 private fun requestPinWidget(
     context: android.content.Context,
 ) {
+    AppMetricsRepository(context).recordWidgetPinRequested()
     val widgetManager = context.getSystemService(AppWidgetManager::class.java) ?: return
     if (!widgetManager.isRequestPinAppWidgetSupported) {
         return

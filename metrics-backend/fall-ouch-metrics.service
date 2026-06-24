@@ -1,0 +1,16 @@
+[Unit]
+Description=Fall Ouch metrics backend
+After=network.target
+
+[Service]
+Type=simple
+User=fallouch
+Group=fallouch
+WorkingDirectory=/opt/fall-ouch-metrics
+EnvironmentFile=/etc/fall-ouch-metrics.env
+ExecStart=/usr/bin/python3 /opt/fall-ouch-metrics/server.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
