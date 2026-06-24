@@ -69,6 +69,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -76,6 +77,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -125,6 +127,10 @@ private val AppTextSoft = Color(0xFFCFCFD4)
 private val AppDanger = Color(0xFFE11A17)
 private val AppDangerSoft = Color(0x33E11A17)
 
+private val LocalAppStrings = staticCompositionLocalOf {
+    AppStrings.forLanguage(AppLanguage.EN_US)
+}
+
 private enum class AppScreen {
     HOME,
     SETTINGS,
@@ -162,6 +168,8 @@ fun ShakeGroanApp(
     val hasAccelerometer = remember(context) {
         context.packageManager.hasSystemFeature(PackageManager.FEATURE_SENSOR_ACCELEROMETER)
     }
+    val appLanguage = uiState.settings.effectiveLanguage()
+    val appStrings = remember(appLanguage) { AppStrings.forLanguage(appLanguage) }
 
     var currentScreen by rememberSaveable { mutableStateOf(AppScreen.HOME) }
     var soundTarget by rememberSaveable { mutableStateOf(SoundTarget.THROW) }
@@ -365,34 +373,36 @@ fun ShakeGroanApp(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppBackground)
-            .safeDrawingPadding()
-    ) {
-        SoftBackdrop()
+    CompositionLocalProvider(LocalAppStrings provides appStrings) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppBackground)
+                .safeDrawingPadding()
+        ) {
+            SoftBackdrop()
 
-        val backingScreen = modalBackingScreen(currentScreen)
-        if (backingScreen == null) {
-            RenderMainScreen(currentScreen)
-        } else {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-            ) {
-                RenderMainScreen(backingScreen)
+            val backingScreen = modalBackingScreen(currentScreen)
+            if (backingScreen == null) {
+                RenderMainScreen(currentScreen)
+            } else {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                ) {
+                    RenderMainScreen(backingScreen)
+                }
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Black.copy(alpha = 0.08f))
+                )
+                RenderModalScreen(currentScreen)
             }
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(Color.Black.copy(alpha = 0.08f))
-            )
-            RenderModalScreen(currentScreen)
-        }
 
-        if (uiState.isProcessing) {
-            BusyOverlay(uiState.statusMessage)
+            if (uiState.isProcessing) {
+                BusyOverlay(uiState.statusMessage)
+            }
         }
     }
 }
@@ -406,6 +416,7 @@ private fun HomeScreen(
     onDismissIntro: () -> Unit,
 ) {
     val isOn = state.settings.isArmed && hasAccelerometer
+    val strings = LocalAppStrings.current
 
     Column(
         modifier = Modifier
@@ -438,9 +449,9 @@ private fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
         TinyStatusPill(
             text = when {
-                !hasAccelerometer -> "режим недоступен"
-                isOn -> "режим включен"
-                else -> "режим выключен"
+                !hasAccelerometer -> strings.modeUnavailable
+                isOn -> strings.modeOn
+                else -> strings.modeOff
             },
             active = isOn && hasAccelerometer,
         )
@@ -460,6 +471,8 @@ private fun HomeIntroPush(
     onOpenGuide: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val strings = LocalAppStrings.current
+
     Surface(
         shape = RoundedCornerShape(22.dp),
         color = AppCard.copy(alpha = 0.92f),
@@ -471,13 +484,13 @@ private fun HomeIntroPush(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Первый запуск?",
+                text = strings.firstLaunchTitle,
                 style = MaterialTheme.typography.titleMedium,
                 color = AppTextSoft,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Открой короткую инструкцию: там есть советы, как подобрать чувствительность под свой телефон.",
+                text = strings.firstLaunchText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppTextMuted,
                 lineHeight = 20.sp
@@ -494,7 +507,7 @@ private fun HomeIntroPush(
                         contentColor = Color(0xFF08111F)
                     )
                 ) {
-                    Text("Открыть")
+                    Text(strings.open)
                 }
                 OutlinedButton(
                     onClick = onDismiss,
@@ -503,7 +516,7 @@ private fun HomeIntroPush(
                         contentColor = AppTextMuted
                     )
                 ) {
-                    Text("Потом")
+                    Text(strings.later)
                 }
             }
         }
@@ -521,24 +534,26 @@ private fun SettingsScreen(
     onVolumeChange: (Float) -> Unit,
     onOpenLanguage: () -> Unit,
 ) {
-    PrimaryColumn {
-        ScreenTitle("Настройки")
+    val strings = LocalAppStrings.current
 
-        Text("Звуки", style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
+    PrimaryColumn {
+        ScreenTitle(strings.settings)
+
+        Text(strings.sounds, style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
         CardBlock {
-            SettingSoundRow("Падение", state.settings.throwSound.displayName) {
+            SettingSoundRow(strings.fall, state.settings.throwSound.displayName) {
                 onOpenTarget(SoundTarget.THROW)
             }
             CardDivider()
-            SettingSoundRow("Шлепок", state.settings.slapSound.displayName) {
+            SettingSoundRow(strings.slap, state.settings.slapSound.displayName) {
                 onOpenTarget(SoundTarget.SLAP)
             }
         }
 
-        Text("Чувствительность", style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
+        Text(strings.sensitivity, style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
         CardBlock {
             ModeSliderRow(
-                title = "Падение",
+                title = strings.fall,
                 enabled = state.settings.throwEnabled,
                 progress = SensitivityMapper.throwProgress(state.settings.throwImpactThreshold),
                 onToggle = onThrowEnabledChange,
@@ -547,7 +562,7 @@ private fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
             ModeSliderRow(
-                title = "Шлепок",
+                title = strings.slap,
                 enabled = state.settings.slapEnabled,
                 progress = SensitivityMapper.slapProgress(state.settings.slapImpactThreshold),
                 onToggle = onSlapEnabledChange,
@@ -556,7 +571,7 @@ private fun SettingsScreen(
             )
         }
 
-        Text("Громкость", style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
+        Text(strings.volume, style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
         CardBlock {
             VolumeSliderRow(
                 progress = state.settings.playbackVolume,
@@ -564,9 +579,9 @@ private fun SettingsScreen(
             )
         }
 
-        Text("Язык", style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
+        Text(strings.language, style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
         CardBlock {
-            SettingSoundRow("Язык приложения", state.settings.effectiveLanguage().label, onOpenLanguage)
+            SettingSoundRow(strings.appLanguage, state.settings.effectiveLanguage().label, onOpenLanguage)
         }
     }
 }
@@ -575,6 +590,8 @@ private fun SettingsScreen(
 private fun UploadScreen(
     onOpenMenu: () -> Unit,
 ) {
+    val strings = LocalAppStrings.current
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -582,7 +599,7 @@ private fun UploadScreen(
             .padding(bottom = 92.dp)
     ) {
         Column {
-            ScreenTitle("Загрузка")
+            ScreenTitle(strings.upload)
         }
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -600,7 +617,7 @@ private fun UploadScreen(
                     .height(82.dp)
             ) {
                 Text(
-                    text = "+ добавить звук",
+                    text = strings.addSound,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -614,12 +631,14 @@ private fun ProfileScreen(
     onOpenGuide: () -> Unit,
     onPinWidget: () -> Unit,
 ) {
+    val strings = LocalAppStrings.current
+
     PrimaryColumn {
-        ScreenTitle("Профиль")
+        ScreenTitle(strings.profile)
         CardBlock {
-            ProfileListRow("Описание и инструкция", onOpenGuide)
+            ProfileListRow(strings.guideAndDescription, onOpenGuide)
             CardDivider()
-            ProfileListRow("Установить виджет", onPinWidget)
+            ProfileListRow(strings.installWidget, onPinWidget)
         }
     }
 }
@@ -630,6 +649,8 @@ private fun LanguagePickerScreen(
     onCancel: () -> Unit,
     onSelect: (AppLanguage) -> Unit,
 ) {
+    val strings = LocalAppStrings.current
+
     ModalScreenScaffold {
         BottomSheetPanel(scrollable = true) {
             Row(
@@ -638,7 +659,7 @@ private fun LanguagePickerScreen(
             ) {
                 CircleBackButton(onCancel)
                 Text(
-                    text = "Язык",
+                    text = strings.language,
                     style = MaterialTheme.typography.headlineMedium,
                     color = AppTextSoft,
                     fontWeight = FontWeight.Medium,
@@ -649,13 +670,6 @@ private fun LanguagePickerScreen(
                 )
             }
             Spacer(modifier = Modifier.height(18.dp))
-            Text(
-                text = "По умолчанию берём язык устройства. Если его нет в списке, откроется English US.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppTextMuted,
-                lineHeight = 20.sp
-            )
-            Spacer(modifier = Modifier.height(16.dp))
             CardBlock {
                 AppLanguage.entries.forEachIndexed { index, language ->
                     LanguageOptionRow(
@@ -714,6 +728,7 @@ private fun SoundPickerScreen(
     onDeleteCustomSound: (String) -> Unit,
     onRenameCustomSound: (String, String) -> Unit,
 ) {
+    val strings = LocalAppStrings.current
     val currentAssignment = currentAssignmentFor(target, state.settings)
     val mineOptions = state.settings.customSounds.map {
         SoundOptionUi(
@@ -743,7 +758,7 @@ private fun SoundPickerScreen(
         StickyHeaderBottomSheetPanel(
             header = {
                 TopActionBar(
-                    title = target.label(),
+                    title = target.label(strings),
                     onCancel = onCancel,
                     onSave = onSave,
                     saveEnabled = true,
@@ -752,7 +767,7 @@ private fun SoundPickerScreen(
         ) {
             Spacer(modifier = Modifier.height(18.dp))
 
-            SectionLabel("Мои звуки")
+            SectionLabel(strings.mySounds)
             CardBlock {
                 mineOptions.forEachIndexed { index, option ->
                     val optionKey = assignmentKey(option.assignment)
@@ -783,7 +798,7 @@ private fun SoundPickerScreen(
                 if (mineOptions.isNotEmpty()) {
                     CardDivider()
                 }
-                AddLinkRow(onClick = onOpenUpload)
+                AddLinkRow(text = strings.addSound, onClick = onOpenUpload)
             }
 
             if (renameUri != null) {
@@ -791,6 +806,7 @@ private fun SoundPickerScreen(
                 RenameCard(
                     value = renameValue,
                     onValueChange = { renameValue = it },
+                    strings = strings,
                     onCancel = {
                         renameUri = null
                         renameValue = ""
@@ -806,7 +822,7 @@ private fun SoundPickerScreen(
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            SectionLabel("Библиотека")
+            SectionLabel(strings.library)
             CardBlock {
                 libraryOptions.forEachIndexed { index, option ->
                     val optionKey = assignmentKey(option.assignment)
@@ -834,6 +850,8 @@ private fun UploadMenuScreen(
     onOpenRecord: () -> Unit,
     onUploadFiles: () -> Unit,
 ) {
+    val strings = LocalAppStrings.current
+
     ModalScreenScaffold {
         BottomSheetPanel(scrollable = true) {
             Row(
@@ -843,11 +861,11 @@ private fun UploadMenuScreen(
                 CircleBackButton(onBack)
             }
             Spacer(modifier = Modifier.height(18.dp))
-            MenuActionButton("Извлечь из видео", onOpenVideo)
+            MenuActionButton(strings.extractFromVideo, onOpenVideo)
             Spacer(modifier = Modifier.height(14.dp))
-            MenuActionButton("Записать", onOpenRecord)
+            MenuActionButton(strings.record, onOpenRecord)
             Spacer(modifier = Modifier.height(14.dp))
-            MenuActionButton("Загрузить", onUploadFiles)
+            MenuActionButton(strings.uploadFile, onUploadFiles)
         }
     }
 }
@@ -859,6 +877,7 @@ private fun VideoImportScreen(
     onPickVideo: () -> Unit,
     onOpenTrim: () -> Unit,
 ) {
+    val strings = LocalAppStrings.current
     val draft = state.clipDraft?.takeIf { it.sourceKind == DraftSourceKind.VIDEO }
 
     ModalScreenScaffold {
@@ -871,20 +890,20 @@ private fun VideoImportScreen(
             }
             Spacer(modifier = Modifier.height(18.dp))
             Text(
-                text = "Извлечь из видео",
+                text = strings.extractFromVideo,
                 style = MaterialTheme.typography.titleLarge,
                 color = AppTextSoft,
                 fontWeight = FontWeight.Medium
             )
             Spacer(modifier = Modifier.height(16.dp))
             MenuActionButton(
-                title = if (draft == null) "Выбрать видео" else "Выбрать другое видео",
+                title = if (draft == null) strings.chooseVideo else strings.chooseAnotherVideo,
                 onClick = onPickVideo
             )
             if (draft != null) {
                 Spacer(modifier = Modifier.height(10.dp))
                 MenuActionButton(
-                    title = "Обрезать текущий фрагмент",
+                    title = strings.trimCurrentFragment,
                     onClick = onOpenTrim
                 )
                 Spacer(modifier = Modifier.height(10.dp))
@@ -904,6 +923,7 @@ private fun RecordScreen(
     onBack: () -> Unit,
     onRecordAction: (String) -> Unit,
 ) {
+    val strings = LocalAppStrings.current
     var recordingName by rememberSaveable { mutableStateOf("") }
 
     ModalScreenScaffold {
@@ -917,7 +937,6 @@ private fun RecordScreen(
                     }
                 },
                 saveEnabled = state.recording.isRecording,
-                saveLabel = "Сохранить",
             )
             Spacer(modifier = Modifier.height(28.dp))
             OutlinedTextField(
@@ -927,7 +946,7 @@ private fun RecordScreen(
                 shape = RoundedCornerShape(14.dp),
                 colors = fieldColors(),
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("название", color = AppTextMuted) },
+                placeholder = { Text(strings.name, color = AppTextMuted) },
                 trailingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.Edit,
@@ -953,9 +972,9 @@ private fun RecordScreen(
             CardBlock {
                 Text(
                     text = if (state.recording.isRecording) {
-                        "Запись ${formatDuration(state.recording.elapsedMs)}"
+                        strings.recording.format(formatDuration(state.recording.elapsedMs))
                     } else {
-                        "Нажмите для записи"
+                        strings.pressToRecord
                     },
                     style = MaterialTheme.typography.titleMedium,
                     color = AppTextMuted,
@@ -985,6 +1004,7 @@ private fun TrimScreen(
     onStopPreview: () -> Unit,
     onSave: (String, Long, Long) -> Unit,
 ) {
+    val strings = LocalAppStrings.current
     val draft = state.clipDraft ?: return
     val durationMs = draft.durationMs.coerceAtLeast(1L)
     var fileName by rememberSaveable(draft.sourceUri) { mutableStateOf(draft.proposedDisplayName) }
@@ -1017,7 +1037,7 @@ private fun TrimScreen(
                 shape = RoundedCornerShape(14.dp),
                 colors = fieldColors(),
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("название", color = AppTextMuted) },
+                placeholder = { Text(strings.name, color = AppTextMuted) },
                 trailingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.Edit,
@@ -1038,7 +1058,7 @@ private fun TrimScreen(
                 if (state.draftWaveformLoading) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Строю волну...",
+                        text = strings.buildingWaveform,
                         style = MaterialTheme.typography.bodySmall,
                         color = AppTextMuted,
                         modifier = Modifier.fillMaxWidth(),
@@ -1059,7 +1079,7 @@ private fun TrimScreen(
             }
             Spacer(modifier = Modifier.height(18.dp))
             SliderLabel(
-                label = "Фрагмент",
+                label = strings.fragment,
                 value = "${formatDuration(selection.startMs)} - ${formatDuration(selection.endMs)}"
             )
             RangeSlider(
@@ -1088,6 +1108,8 @@ private fun TrimScreen(
 private fun ProfileGuideScreen(
     onBack: () -> Unit,
 ) {
+    val strings = LocalAppStrings.current
+
     ModalScreenScaffold {
         BottomSheetPanel(scrollable = true) {
             Row(
@@ -1098,7 +1120,7 @@ private fun ProfileGuideScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Описание и инструкция",
+                text = strings.guideTitle,
                 style = MaterialTheme.typography.headlineMedium,
                 color = AppTextSoft,
                 fontWeight = FontWeight.Medium
@@ -1106,7 +1128,7 @@ private fun ProfileGuideScreen(
             Spacer(modifier = Modifier.height(16.dp))
             CardBlock {
                 Text(
-                    text = "1. Настройте «Чувствительность». На разных телефонах датчики могут работать по-разному. Если уменьшить чувствительность до минимума, эффект полностью отключится.\n\n2. Добавляйте свои звуки без ограничений. Вы можете записать звук через диктофон, загрузить его с телефона в любом формате или извлечь звук из видео — например, из скачанного ролика или записи экрана — и отредактировать его.\n\n3. Звуки можно редактировать и переименовывать. Для этого свайпните звук влево в меню выбора звуков.\n\n4. Загруженные звуки можно отправить другу — также свайпнув звук влево.\n\n5. Можно установить виджет для быстрого включения и выключения эффектов.\n\n6. Если что-то не работает или работает не так, как ожидалось, пожалуйста, напишите нам. Мы обязательно разберёмся и постараемся всё исправить. Это наше первое приложение, и ваша обратная связь очень важна для нас 🙂\n\n7. Если вам понравилось приложение и оно вызвало у вас улыбку, пожалуйста, оставьте отзыв.",
+                    text = strings.guideBody,
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppTextSoft,
                     lineHeight = 24.sp
@@ -1459,15 +1481,17 @@ private fun TopActionBar(
     onCancel: () -> Unit,
     onSave: () -> Unit,
     saveEnabled: Boolean = true,
-    saveLabel: String = "Сохранить",
+    saveLabel: String? = null,
 ) {
+    val strings = LocalAppStrings.current
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         SheetPillButton(
-            text = "Отмена",
+            text = strings.cancel,
             accent = false,
             onClick = onCancel,
         )
@@ -1477,7 +1501,7 @@ private fun TopActionBar(
             color = AppTextSoft
         )
         SheetPillButton(
-            text = saveLabel,
+            text = saveLabel ?: strings.save,
             accent = true,
             enabled = saveEnabled,
             onClick = onSave,
@@ -1716,6 +1740,7 @@ private fun PlaybackTimeline(progress: Float) {
 
 @Composable
 private fun AddLinkRow(
+    text: String,
     onClick: () -> Unit,
 ) {
     Row(
@@ -1726,7 +1751,7 @@ private fun AddLinkRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "+ Добавить звук",
+            text = text,
             style = MaterialTheme.typography.bodyLarge,
             color = AppAccent,
         )
@@ -1737,6 +1762,7 @@ private fun AddLinkRow(
 private fun RenameCard(
     value: String,
     onValueChange: (String) -> Unit,
+    strings: AppStrings,
     onCancel: () -> Unit,
     onSave: () -> Unit,
 ) {
@@ -1750,7 +1776,7 @@ private fun RenameCard(
             shape = RoundedCornerShape(14.dp),
             colors = fieldColors(),
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("название", color = AppTextMuted) },
+            placeholder = { Text(strings.name, color = AppTextMuted) },
         )
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1761,7 +1787,7 @@ private fun RenameCard(
                 border = androidx.compose.foundation.BorderStroke(1.dp, AppStrokeSoft),
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Отмена")
+                Text(strings.cancel)
             }
             Button(
                 onClick = onSave,
@@ -1772,7 +1798,7 @@ private fun RenameCard(
                 ),
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Сохранить")
+                Text(strings.save)
             }
         }
     }
@@ -1783,6 +1809,8 @@ private fun MenuActionButton(
     title: String,
     onClick: () -> Unit,
 ) {
+    val strings = LocalAppStrings.current
+
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AppCard,
@@ -2056,6 +2084,8 @@ private fun BottomDock(
     onScreenChange: (AppScreen) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalAppStrings.current
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -2069,16 +2099,16 @@ private fun BottomDock(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BottomItem(Icons.Rounded.Home, "Домой", currentScreen == AppScreen.HOME) {
+            BottomItem(Icons.Rounded.Home, strings.home, currentScreen == AppScreen.HOME) {
                 onScreenChange(AppScreen.HOME)
             }
-            BottomItem(Icons.Rounded.Settings, "Настройки", currentScreen == AppScreen.SETTINGS) {
+            BottomItem(Icons.Rounded.Settings, strings.settings, currentScreen == AppScreen.SETTINGS) {
                 onScreenChange(AppScreen.SETTINGS)
             }
-            BottomItem(Icons.Rounded.CloudUpload, "Загрузка", currentScreen == AppScreen.UPLOAD) {
+            BottomItem(Icons.Rounded.CloudUpload, strings.upload, currentScreen == AppScreen.UPLOAD) {
                 onScreenChange(AppScreen.UPLOAD)
             }
-            BottomItem(Icons.Rounded.Person, "Профиль", currentScreen == AppScreen.PROFILE) {
+            BottomItem(Icons.Rounded.Person, strings.profile, currentScreen == AppScreen.PROFILE) {
                 onScreenChange(AppScreen.PROFILE)
             }
         }
@@ -2148,9 +2178,9 @@ private fun fieldColors() = androidx.compose.material3.OutlinedTextFieldDefaults
     unfocusedTrailingIconColor = AppTextMuted,
 )
 
-private fun SoundTarget.label(): String = when (this) {
-    SoundTarget.THROW -> "Падение"
-    SoundTarget.SLAP -> "Шлепок"
+private fun SoundTarget.label(strings: AppStrings): String = when (this) {
+    SoundTarget.THROW -> strings.fall
+    SoundTarget.SLAP -> strings.slap
 }
 
 private fun SoundTarget.toAssignTarget(): AssignTarget = when (this) {

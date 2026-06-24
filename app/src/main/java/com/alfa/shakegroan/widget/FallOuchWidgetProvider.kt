@@ -47,11 +47,26 @@ class FallOuchWidgetProvider : AppWidgetProvider() {
         metricsRepository.recordWidgetToggle()
         metricsRepository.recordArmedChange(updatedSettings.isArmed)
         repository.save(updatedSettings)
+        broadcastRuntimeUpdate(context, updatedSettings.isArmed)
         if (updatedSettings.isArmed) {
             BackgroundMonitorService.startOrUpdate(context)
         } else {
             BackgroundMonitorService.stop(context)
         }
+    }
+
+    private fun broadcastRuntimeUpdate(context: Context, isArmed: Boolean) {
+        val message = if (isArmed) {
+            "режим включен"
+        } else {
+            "режим выключен"
+        }
+        val intent = Intent(BackgroundMonitorService.ACTION_RUNTIME_UPDATE).apply {
+            `package` = context.packageName
+            putExtra(BackgroundMonitorService.EXTRA_IS_ARMED, isArmed)
+            putExtra(BackgroundMonitorService.EXTRA_STATUS_MESSAGE, message)
+        }
+        context.sendBroadcast(intent)
     }
 
     companion object {

@@ -92,6 +92,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         metricsRepository.recordLanguageSelected(language)
     }
 
+    fun reloadSettingsFromStorage() {
+        val storedSettings = repository.load()
+        _uiState.update { current ->
+            if (current.settings == storedSettings) {
+                current
+            } else {
+                current.copy(settings = storedSettings)
+            }
+        }
+    }
+
     fun addCustomSounds(newSounds: List<PickedSound>) {
         addCustomSoundEntries(
             newSounds.map { sound ->
