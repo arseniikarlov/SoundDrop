@@ -3,6 +3,10 @@
 /build/
 /app/build/
 /local.properties
+/release-keystore.properties
+/artifacts/*.jks
+/artifacts/*.keystore
+/artifacts/*.aab
 /.idea/
 *.iml
 captures/
