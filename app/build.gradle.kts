@@ -18,7 +18,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.alfa.shakegroan"
+        applicationId = "com.fallouch.myapp"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
