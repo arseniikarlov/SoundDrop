@@ -79,6 +79,7 @@ class SoundPlayer(
             stopActivePlayback()
             previewFinishedCallback = onFinished
             previewProgressCallback = onProgress
+            val playerVolume = effectivePlaybackVolume(volume)
             val targetUri = Uri.parse(uriString)
             mediaPlayer = MediaPlayer().apply {
                 if (targetUri.scheme == "file") {
@@ -87,7 +88,7 @@ class SoundPlayer(
                     setDataSource(appContext, targetUri)
                 }
                 prepare()
-                setVolume(volume, volume)
+                setVolume(playerVolume, playerVolume)
                 setOnCompletionListener {
                     it.release()
                     mediaPlayer = null
@@ -126,8 +127,9 @@ class SoundPlayer(
         stopActivePlayback()
         previewFinishedCallback = onFinished
         previewProgressCallback = onProgress
+        val playerVolume = effectivePlaybackVolume(volume)
         mediaPlayer = MediaPlayer.create(appContext, sound.resId)?.apply {
-            setVolume(volume, volume)
+            setVolume(playerVolume, playerVolume)
             setOnCompletionListener {
                 it.release()
                 mediaPlayer = null
@@ -181,6 +183,11 @@ class SoundPlayer(
         if (clearCallback) {
             previewProgressCallback = null
         }
+    }
+
+    private fun effectivePlaybackVolume(volume: Float): Float {
+        val safeVolume = volume.coerceIn(0f, 1f)
+        return safeVolume * safeVolume
     }
 }
 

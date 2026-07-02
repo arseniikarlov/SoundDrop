@@ -2,7 +2,6 @@ package com.alfa.shakegroan.data
 
 import com.alfa.shakegroan.audio.BuiltInSoundCatalog
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AppSettingsStorageMapperTest {
@@ -20,12 +19,12 @@ class AppSettingsStorageMapperTest {
         )
 
         assertEquals(false, settings.hasSeenIntroGuide)
-        assertTrue(settings.slapEnabled)
-        assertEquals(67.0f, settings.throwImpactThreshold, 0.0f)
-        assertEquals(13.0f, settings.slapImpactThreshold, 0.0f)
+        assertEquals(false, settings.slapEnabled)
+        assertEquals(50.0f, settings.throwImpactThreshold, 0.0f)
+        assertEquals(24.0f, settings.slapImpactThreshold, 0.0f)
         assertEquals(1000, settings.cooldownMs)
-        assertEquals("archive4_aaaaaa", settings.throwSound.reference)
-        assertEquals("AAAAAA", settings.throwSound.displayName)
+        assertEquals("archive4_tom_scream", settings.throwSound.reference)
+        assertEquals("Tom Scream", settings.throwSound.displayName)
         assertEquals("archive4_oof", settings.slapSound.reference)
         assertEquals("Oof!", settings.slapSound.displayName)
     }
@@ -59,8 +58,8 @@ class AppSettingsStorageMapperTest {
         )
 
         assertEquals(SoundSourceType.BUILT_IN_CLEAN, settings.throwSound.sourceType)
-        assertEquals("archive4_aaaaaa", settings.throwSound.reference)
-        assertEquals("AAAAAA", settings.throwSound.displayName)
+        assertEquals("archive4_tom_scream", settings.throwSound.reference)
+        assertEquals("Tom Scream", settings.throwSound.displayName)
     }
 
     @Test

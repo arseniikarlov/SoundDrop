@@ -14,7 +14,6 @@ data class BundledSound(
 
 object BuiltInSoundCatalog {
     val cleanSounds = listOf(
-        BundledSound("archive4_aaaaaa", R.raw.archive4_aaaaaa, "AAAAAA"),
         BundledSound("archive4_bruh", R.raw.archive4_bruh, "Bruh", isPopular = true),
         BundledSound("archive4_explosion", R.raw.archive4_explosion, "Explosion", isPopular = true),
         BundledSound("archive4_oof", R.raw.archive4_oof, "Oof!", isPopular = true),
@@ -26,7 +25,7 @@ object BuiltInSoundCatalog {
 
     fun cleanSoundById(id: String): BundledSound? = cleanSounds.firstOrNull { it.id == id }
 
-    fun defaultThrowAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "archive4_aaaaaa" })
+    fun defaultThrowAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "archive4_tom_scream" })
 
     fun defaultSlapAssignment(): SoundAssignment = assignmentFor(cleanSounds.first { it.id == "archive4_oof" })
 

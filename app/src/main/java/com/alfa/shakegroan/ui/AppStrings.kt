@@ -26,6 +26,8 @@ data class AppStrings(
     val save: String,
     val cancel: String,
     val name: String,
+    val titleLabel: String,
+    val trimHelp: String,
     val fragment: String,
     val buildingWaveform: String,
     val pressToRecord: String,
@@ -69,34 +71,32 @@ data class AppStrings(
                 save = "Guardar",
                 cancel = "Cancelar",
                 name = "nombre",
+                titleLabel = "Nombre",
+                trimHelp = "Mueve los controles para editar",
                 fragment = "Fragmento",
                 buildingWaveform = "Creando onda...",
                 pressToRecord = "Toca para grabar",
                 recording = "Grabando %s",
-                firstLaunchTitle = "¿Primer inicio?",
-                firstLaunchText = "Abre la guía rápida: tiene consejos para ajustar la sensibilidad a tu teléfono.",
+                firstLaunchTitle = "¡NO TE APURES!",
+                firstLaunchText = "Para no arruinar la primera impresión de la app, lee la instrucción corta.",
                 open = "Abrir",
                 later = "Luego",
                 modeUnavailable = "modo no disponible",
                 modeOn = "modo activado",
                 modeOff = "modo desactivado",
-                guideTitle = "Descripción e instrucciones",
+                guideTitle = "Instrucción",
                 guideBody = """
-                    1. Ajusta la «Sensibilidad». Los sensores pueden comportarse de forma distinta en cada teléfono. Si bajas la sensibilidad al mínimo, ese efecto se desactiva por completo.
+                    1. Prueba la «Sensibilidad». Los sensores se comportan distinto según el teléfono. Si bajas la sensibilidad al mínimo, ese efecto se apaga por completo.
 
-                    2. Añade tus propios sonidos sin límites. Puedes grabar un sonido, subirlo desde el teléfono en casi cualquier formato o extraer audio de un vídeo, por ejemplo de un clip descargado o de una grabación de pantalla, y luego recortarlo.
+                    2. La opción «Palmada» es experimental. Si no logras combinarla bien con caída, deja solo una de las dos.
 
-                    3. Los sonidos se pueden editar y renombrar. Para hacerlo, desliza el sonido hacia la izquierda en el menú de selección.
+                    3. Añade tus propios sonidos sin límites. Puedes grabarlos, subirlos desde el teléfono en casi cualquier formato o extraer audio de un video, como un clip descargado o una grabación de pantalla, y editarlo.
 
-                    4. Los sonidos subidos se pueden enviar a un amigo deslizando el sonido hacia la izquierda.
+                    4. Puedes instalar un widget para activar y desactivar los efectos rápidamente.
 
-                    5. Puedes añadir un widget para activar y desactivar los efectos rápidamente.
-
-                    6. Si algo no funciona o se comporta de forma extraña, escríbenos. Lo revisaremos e intentaremos arreglarlo. Esta es nuestra primera app y tu opinión es muy importante para nosotros :)
-
-                    7. Si la app te sacó una sonrisa, por favor deja una reseña.
+                    5. Si algo no funciona o no va como esperabas, no te apresures a dejar una mala reseña: escríbenos y resolveremos el problema. Es nuestra primera app 🙂
                 """.trimIndent(),
-                guideAndDescription = "Descripción e instrucciones",
+                guideAndDescription = "Instrucción",
                 installWidget = "Instalar widget",
             )
             AppLanguage.IT -> base.copy(
@@ -123,34 +123,32 @@ data class AppStrings(
                 save = "Salva",
                 cancel = "Annulla",
                 name = "nome",
+                titleLabel = "Nome",
+                trimHelp = "Muovi i cursori per modificare",
                 fragment = "Frammento",
                 buildingWaveform = "Creo onda...",
                 pressToRecord = "Tocca per registrare",
                 recording = "Registrazione %s",
-                firstLaunchTitle = "Primo avvio?",
-                firstLaunchText = "Apri la guida rapida: ci sono consigli per regolare la sensibilità sul tuo telefono.",
+                firstLaunchTitle = "NON AVERE FRETTA!",
+                firstLaunchText = "Per non rovinare la prima impressione dell’app, leggi la breve istruzione.",
                 open = "Apri",
                 later = "Dopo",
                 modeUnavailable = "modalità non disponibile",
                 modeOn = "modalità attiva",
                 modeOff = "modalità disattiva",
-                guideTitle = "Descrizione e istruzioni",
+                guideTitle = "Istruzione",
                 guideBody = """
-                    1. Regola la «Sensibilità». I sensori possono funzionare in modo diverso su telefoni diversi. Se porti la sensibilità al minimo, l’effetto si disattiva completamente.
+                    1. Prova la «Sensibilità». I sensori cambiano comportamento da telefono a telefono. Se abbassi la sensibilità al minimo, quell’effetto si spegne del tutto.
 
-                    2. Aggiungi i tuoi suoni senza limiti. Puoi registrare un suono, caricarlo dal telefono in quasi qualsiasi formato oppure estrarre l’audio da un video, per esempio da una clip scaricata o da una registrazione dello schermo, e poi tagliarlo.
+                    2. L’opzione «Schiaffo» è sperimentale. Se non riesci a combinarla bene con la caduta, lascia attiva solo una delle due.
 
-                    3. I suoni possono essere modificati e rinominati. Scorri il suono verso sinistra nel menu di selezione.
+                    3. Aggiungi suoni senza limiti. Puoi registrarli, caricarli dal telefono in quasi qualsiasi formato o estrarre audio da un video, come una clip scaricata o una registrazione schermo, e modificarlo.
 
-                    4. I suoni caricati possono essere inviati a un amico scorrendo il suono verso sinistra.
+                    4. Puoi installare un widget per accendere e spegnere rapidamente gli effetti.
 
-                    5. Puoi aggiungere un widget per attivare e disattivare rapidamente gli effetti.
-
-                    6. Se qualcosa non funziona o si comporta in modo strano, scrivici. Controlleremo e proveremo a sistemarlo. Questa è la nostra prima app e il tuo feedback è davvero importante per noi :)
-
-                    7. Se l’app ti ha fatto sorridere, lascia una recensione.
+                    5. Se qualcosa non funziona o sembra sbagliato, non lasciare subito una recensione negativa: scrivici e risolveremo il problema. È la nostra prima app 🙂
                 """.trimIndent(),
-                guideAndDescription = "Descrizione e istruzioni",
+                guideAndDescription = "Istruzione",
                 installWidget = "Installa widget",
             )
             AppLanguage.PT_BR -> base.copy(
@@ -177,34 +175,32 @@ data class AppStrings(
                 save = "Salvar",
                 cancel = "Cancelar",
                 name = "nome",
+                titleLabel = "Nome",
+                trimHelp = "Mova os controles para editar",
                 fragment = "Fragmento",
                 buildingWaveform = "Criando onda...",
                 pressToRecord = "Toque para gravar",
                 recording = "Gravando %s",
-                firstLaunchTitle = "Primeira vez?",
-                firstLaunchText = "Abra o guia rápido: ele tem dicas para ajustar a sensibilidade ao seu telefone.",
+                firstLaunchTitle = "NÃO TENHA PRESSA!",
+                firstLaunchText = "Para não estragar a primeira impressão do app, leia a instrução curta.",
                 open = "Abrir",
                 later = "Depois",
                 modeUnavailable = "modo indisponível",
                 modeOn = "modo ligado",
                 modeOff = "modo desligado",
-                guideTitle = "Descrição e instruções",
+                guideTitle = "Instrução",
                 guideBody = """
-                    1. Ajuste a «Sensibilidade». Os sensores podem funcionar de formas diferentes em cada telefone. Se você reduzir a sensibilidade ao mínimo, esse efeito será totalmente desativado.
+                    1. Teste a «Sensibilidade». Os sensores podem se comportar de formas diferentes em cada telefone. Se você reduzir a sensibilidade ao mínimo, esse efeito será desativado por completo.
 
-                    2. Adicione seus próprios sons sem limites. Você pode gravar um som, enviar do telefone em quase qualquer formato ou extrair áudio de um vídeo, por exemplo de um clipe baixado ou de uma gravação de tela, e depois cortar o trecho.
+                    2. A opção «Tapa» é experimental. Se não conseguir combinar bem com queda, deixe apenas uma das duas ativa.
 
-                    3. Os sons podem ser editados e renomeados. Para isso, deslize o som para a esquerda no menu de seleção.
+                    3. Adicione seus sons sem limites. Você pode gravar, enviar do telefone em quase qualquer formato ou extrair áudio de um vídeo, como um clipe baixado ou gravação de tela, e editar.
 
-                    4. Os sons enviados podem ser compartilhados com um amigo deslizando o som para a esquerda.
+                    4. Você pode instalar um widget para ligar e desligar os efeitos rapidamente.
 
-                    5. Você pode adicionar um widget para ligar e desligar os efeitos rapidamente.
-
-                    6. Se algo não funcionar ou parecer estranho, escreva para nós. Vamos investigar e tentar corrigir. Este é nosso primeiro app, e seu feedback é muito importante para nós :)
-
-                    7. Se o app fez você sorrir, deixe uma avaliação.
+                    5. Se algo não funcionar ou parecer errado, não deixe uma avaliação ruim logo de cara: escreva para nós e vamos resolver. Este é nosso primeiro app 🙂
                 """.trimIndent(),
-                guideAndDescription = "Descrição e instruções",
+                guideAndDescription = "Instrução",
                 installWidget = "Instalar widget",
             )
             AppLanguage.DE -> base.copy(
@@ -231,34 +227,32 @@ data class AppStrings(
                 save = "Speichern",
                 cancel = "Abbrechen",
                 name = "name",
+                titleLabel = "Name",
+                trimHelp = "Bewege die Regler zum Bearbeiten",
                 fragment = "Fragment",
                 buildingWaveform = "Wellenform wird erstellt...",
                 pressToRecord = "Zum Aufnehmen tippen",
                 recording = "Aufnahme %s",
-                firstLaunchTitle = "Erster Start?",
-                firstLaunchText = "Öffne die Kurzanleitung: dort findest du Tipps zur Empfindlichkeit deines Telefons.",
+                firstLaunchTitle = "NICHT HETZEN!",
+                firstLaunchText = "Damit der erste Eindruck der App gut bleibt, lies kurz die Anleitung.",
                 open = "Öffnen",
                 later = "Später",
                 modeUnavailable = "Modus nicht verfügbar",
                 modeOn = "Modus ein",
                 modeOff = "Modus aus",
-                guideTitle = "Beschreibung und Anleitung",
+                guideTitle = "Anleitung",
                 guideBody = """
-                    1. Passe die «Empfindlichkeit» an. Sensoren können sich je nach Telefon unterschiedlich verhalten. Wenn du die Empfindlichkeit ganz nach unten stellst, wird der Effekt vollständig deaktiviert.
+                    1. Probiere die «Empfindlichkeit» aus. Sensoren verhalten sich je nach Telefon unterschiedlich. Wenn du die Empfindlichkeit ganz nach unten stellst, wird dieser Effekt komplett ausgeschaltet.
 
-                    2. Füge eigene Sounds ohne Limit hinzu. Du kannst einen Sound aufnehmen, ihn vom Telefon in fast jedem Format hochladen oder Audio aus einem Video extrahieren, zum Beispiel aus einem heruntergeladenen Clip oder einer Bildschirmaufnahme, und ihn danach zuschneiden.
+                    2. Die Option «Klaps» ist experimentell. Wenn sie sich nicht gut mit Sturz kombinieren lässt, lass nur eine der beiden aktiv.
 
-                    3. Sounds können bearbeitet und umbenannt werden. Wische dazu im Sound-Auswahlmenü nach links.
+                    3. Füge eigene Sounds ohne Limit hinzu. Du kannst aufnehmen, fast jedes Format vom Telefon hochladen oder Audio aus einem Video extrahieren, etwa aus einem Download oder einer Bildschirmaufnahme, und es bearbeiten.
 
-                    4. Hochgeladene Sounds kannst du auch an einen Freund senden, indem du den Sound nach links wischst.
+                    4. Du kannst ein Widget installieren, um Effekte schnell ein- und auszuschalten.
 
-                    5. Du kannst ein Widget hinzufügen, um die Effekte schnell ein- und auszuschalten.
-
-                    6. Wenn etwas nicht funktioniert oder sich falsch anfühlt, schreib uns bitte. Wir schauen es uns an und versuchen, es zu beheben. Das ist unsere erste App, und dein Feedback ist uns wirklich wichtig :)
-
-                    7. Wenn dich die App zum Lächeln gebracht hat, hinterlasse bitte eine Bewertung.
+                    5. Wenn etwas nicht funktioniert oder falsch wirkt, hinterlasse bitte nicht sofort eine schlechte Bewertung: Schreib uns, und wir lösen das Problem. Das ist unsere erste App 🙂
                 """.trimIndent(),
-                guideAndDescription = "Beschreibung und Anleitung",
+                guideAndDescription = "Anleitung",
                 installWidget = "Widget installieren",
             )
             AppLanguage.FR -> base.copy(
@@ -285,34 +279,32 @@ data class AppStrings(
                 save = "Enregistrer",
                 cancel = "Annuler",
                 name = "nom",
+                titleLabel = "Nom",
+                trimHelp = "Déplace les curseurs pour modifier",
                 fragment = "Fragment",
                 buildingWaveform = "Création de l’onde...",
                 pressToRecord = "Touchez pour enregistrer",
                 recording = "Enregistrement %s",
-                firstLaunchTitle = "Première ouverture ?",
-                firstLaunchText = "Ouvre le guide rapide : il aide à régler la sensibilité selon ton téléphone.",
+                firstLaunchTitle = "NE TE PRÉCIPITE PAS !",
+                firstLaunchText = "Pour ne pas gâcher ta première impression de l’app, lis la courte instruction.",
                 open = "Ouvrir",
                 later = "Plus tard",
                 modeUnavailable = "mode indisponible",
                 modeOn = "mode activé",
                 modeOff = "mode désactivé",
-                guideTitle = "Description et instructions",
+                guideTitle = "Instruction",
                 guideBody = """
-                    1. Réglez la «Sensibilité». Les capteurs peuvent fonctionner différemment selon les téléphones. Si vous baissez la sensibilité au minimum, l’effet sera complètement désactivé.
+                    1. Essaie la «Sensibilité». Les capteurs peuvent réagir différemment selon le téléphone. Si tu baisses la sensibilité au minimum, cet effet se désactive complètement.
 
-                    2. Ajoutez vos propres sons sans limite. Vous pouvez enregistrer un son, l’importer depuis votre téléphone dans presque n’importe quel format ou extraire l’audio d’une vidéo, par exemple d’une vidéo téléchargée ou d’un enregistrement d’écran, puis le découper.
+                    2. L’option «Claque» est expérimentale. Si elle se combine mal avec la chute, garde seulement l’une des deux.
 
-                    3. Les sons peuvent être modifiés et renommés. Pour cela, faites glisser le son vers la gauche dans le menu de sélection.
+                    3. Ajoute tes sons sans limite. Tu peux enregistrer, importer presque n’importe quel format depuis ton téléphone ou extraire l’audio d’une vidéo, comme une vidéo téléchargée ou un enregistrement d’écran, puis le modifier.
 
-                    4. Les sons importés peuvent être envoyés à un ami en faisant aussi glisser le son vers la gauche.
+                    4. Tu peux installer un widget pour activer et désactiver rapidement les effets.
 
-                    5. Vous pouvez ajouter un widget pour activer et désactiver rapidement les effets.
-
-                    6. Si quelque chose ne fonctionne pas ou semble étrange, écrivez-nous. Nous vérifierons et essaierons de corriger le problème. C’est notre première application, et votre retour compte beaucoup pour nous :)
-
-                    7. Si l’application vous a fait sourire, laissez un avis.
+                    5. Si quelque chose ne marche pas ou semble incorrect, ne laisse pas tout de suite un mauvais avis : écris-nous et nous réglerons le problème. C’est notre première app 🙂
                 """.trimIndent(),
-                guideAndDescription = "Description et instructions",
+                guideAndDescription = "Instruction",
                 installWidget = "Installer le widget",
             )
             AppLanguage.JA -> base.copy(
@@ -339,34 +331,32 @@ data class AppStrings(
                 save = "保存",
                 cancel = "キャンセル",
                 name = "名前",
+                titleLabel = "名前",
+                trimHelp = "スライダーを動かして編集",
                 fragment = "範囲",
                 buildingWaveform = "波形を作成中...",
                 pressToRecord = "タップして録音",
                 recording = "録音 %s",
-                firstLaunchTitle = "初回起動？",
-                firstLaunchText = "クイックガイドで端末に合わせた感度調整を確認できます。",
+                firstLaunchTitle = "急がないで！",
+                firstLaunchText = "アプリの第一印象を悪くしないために、短い使い方を読んでください。",
                 open = "開く",
                 later = "あとで",
                 modeUnavailable = "利用不可",
                 modeOn = "オン",
                 modeOff = "オフ",
-                guideTitle = "説明と使い方",
+                guideTitle = "使い方",
                 guideBody = """
-                    1. 「感度」を調整してください。センサーの反応は端末によって異なることがあります。感度を最小まで下げると、その効果は完全にオフになります。
+                    1. 「感度」を試してください。センサーの反応は端末によって異なります。感度を最小にすると、その効果は完全にオフになります。
 
-                    2. 自分のサウンドを制限なく追加できます。録音した音、端末内のほぼ任意の形式の音声、ダウンロードした動画や画面録画から抽出した音声を追加し、必要な部分だけ切り取れます。
+                    2. 「叩き」は実験的な機能です。落下とうまく併用できない場合は、どちらか一方だけを使ってください。
 
-                    3. サウンドは編集や名前変更ができます。サウンド選択画面で左にスワイプしてください。
+                    3. 自分のサウンドを制限なく追加できます。録音、端末内のほぼ任意の形式のファイル、ダウンロード動画や画面録画から抽出した音声を追加し、編集できます。
 
-                    4. 追加したサウンドは、左にスワイプして友だちに送ることもできます。
+                    4. ウィジェットを追加すると、効果をすばやくオン・オフできます。
 
-                    5. ウィジェットを追加すると、効果をすばやくオン・オフできます。
-
-                    6. 何かが動かない、または期待どおりでない場合は、ぜひお知らせください。確認して修正できるようにします。これは私たちの最初のアプリなので、フィードバックはとても大切です :)
-
-                    7. アプリで少しでも笑顔になれたら、レビューを残していただけるとうれしいです。
+                    5. うまく動かない場合や期待と違う場合は、悪いレビューの前にぜひ連絡してください。問題を解決します。これは私たちの最初のアプリです 🙂
                 """.trimIndent(),
-                guideAndDescription = "説明と使い方",
+                guideAndDescription = "使い方",
                 installWidget = "ウィジェットを追加",
             )
             AppLanguage.KO -> base.copy(
@@ -393,34 +383,32 @@ data class AppStrings(
                 save = "저장",
                 cancel = "취소",
                 name = "이름",
+                titleLabel = "이름",
+                trimHelp = "슬라이더를 움직여 편집하세요",
                 fragment = "구간",
                 buildingWaveform = "파형 생성 중...",
                 pressToRecord = "탭하여 녹음",
                 recording = "녹음 %s",
-                firstLaunchTitle = "처음 실행?",
-                firstLaunchText = "빠른 안내에서 휴대폰에 맞는 감도 조절 팁을 확인하세요.",
+                firstLaunchTitle = "서두르지 마세요!",
+                firstLaunchText = "앱의 첫인상을 망치지 않도록 짧은 안내를 읽어주세요.",
                 open = "열기",
                 later = "나중에",
                 modeUnavailable = "모드 사용 불가",
                 modeOn = "모드 켜짐",
                 modeOff = "모드 꺼짐",
-                guideTitle = "설명 및 안내",
+                guideTitle = "안내",
                 guideBody = """
-                    1. «감도»를 조절하세요. 휴대폰마다 센서 반응이 다를 수 있습니다. 감도를 최소로 낮추면 해당 효과가 완전히 꺼집니다.
+                    1. «감도»를 조절해 보세요. 휴대폰마다 센서 반응이 다릅니다. 감도를 최소로 내리면 해당 효과가 완전히 꺼집니다.
 
-                    2. 원하는 소리를 제한 없이 추가할 수 있습니다. 녹음기로 직접 녹음하거나, 휴대폰에서 거의 모든 형식의 파일을 가져오거나, 다운로드한 영상이나 화면 녹화에서 오디오를 추출한 뒤 필요한 부분만 자를 수 있습니다.
+                    2. «찰싹» 옵션은 실험적입니다. 낙하와 잘 맞지 않으면 둘 중 하나만 켜 두세요.
 
-                    3. 소리는 편집하고 이름을 바꿀 수 있습니다. 소리 선택 메뉴에서 왼쪽으로 스와이프하세요.
+                    3. 원하는 소리를 제한 없이 추가할 수 있습니다. 녹음, 거의 모든 형식의 파일 업로드, 다운로드 영상이나 화면 녹화에서 오디오 추출 후 편집이 가능합니다.
 
-                    4. 업로드한 소리는 왼쪽으로 스와이프해서 친구에게 보낼 수도 있습니다.
+                    4. 위젯을 설치하면 효과를 빠르게 켜고 끌 수 있습니다.
 
-                    5. 위젯을 추가하면 효과를 빠르게 켜고 끌 수 있습니다.
-
-                    6. 무언가 작동하지 않거나 이상하게 느껴지면 알려주세요. 확인하고 고치기 위해 노력하겠습니다. 이 앱은 저희의 첫 앱이라 여러분의 피드백이 정말 중요합니다 :)
-
-                    7. 앱이 웃음을 줬다면 리뷰를 남겨주세요.
+                    5. 무언가 작동하지 않거나 이상하면 나쁜 리뷰를 남기기 전에 알려주세요. 문제를 해결하겠습니다. 이 앱은 저희의 첫 앱입니다 🙂
                 """.trimIndent(),
-                guideAndDescription = "설명 및 안내",
+                guideAndDescription = "안내",
                 installWidget = "위젯 설치",
             )
             AppLanguage.HI -> base.copy(
@@ -447,34 +435,32 @@ data class AppStrings(
                 save = "सेव",
                 cancel = "रद्द",
                 name = "नाम",
+                titleLabel = "नाम",
+                trimHelp = "संपादन के लिए स्लाइडर खिसकाएँ",
                 fragment = "हिस्सा",
                 buildingWaveform = "वेवफॉर्म बना रहा है...",
                 pressToRecord = "रिकॉर्ड करने के लिए टैप करें",
                 recording = "रिकॉर्डिंग %s",
-                firstLaunchTitle = "पहली बार?",
-                firstLaunchText = "छोटी गाइड खोलें: इसमें आपके फोन के लिए संवेदनशीलता सेट करने की टिप्स हैं.",
+                firstLaunchTitle = "जल्दी मत करें!",
+                firstLaunchText = "ऐप का पहला अनुभव खराब न हो, इसलिए छोटी गाइड पढ़ लें.",
                 open = "खोलें",
                 later = "बाद में",
                 modeUnavailable = "मोड उपलब्ध नहीं",
                 modeOn = "मोड चालू",
                 modeOff = "मोड बंद",
-                guideTitle = "विवरण और निर्देश",
+                guideTitle = "निर्देश",
                 guideBody = """
-                    1. «संवेदनशीलता» सेट करें। अलग-अलग फोन में सेंसर अलग तरह से काम कर सकते हैं। अगर संवेदनशीलता को न्यूनतम कर दें, तो वह प्रभाव पूरी तरह बंद हो जाएगा।
+                    1. «संवेदनशीलता» आज़माएँ। अलग-अलग फोन में सेंसर अलग तरह से काम कर सकते हैं। संवेदनशीलता को न्यूनतम करने पर वह प्रभाव पूरी तरह बंद हो जाएगा।
 
-                    2. अपने ध्वनि प्रभाव बिना सीमा के जोड़ें। आप ध्वनि रिकॉर्ड कर सकते हैं, फोन से लगभग किसी भी फॉर्मेट में अपलोड कर सकते हैं, या किसी वीडियो से ऑडियो निकाल सकते हैं, जैसे डाउनलोड की गई क्लिप या स्क्रीन रिकॉर्डिंग, और फिर उसे काट सकते हैं।
+                    2. «थप्पड़» विकल्प प्रयोगात्मक है। अगर यह गिरने वाले प्रभाव के साथ ठीक से न मिले, तो केवल एक विकल्प चालू रखें।
 
-                    3. ध्वनियों को संपादित और नाम बदला जा सकता है। इसके लिए ध्वनि चयन मेनू में ध्वनि को बाईं ओर स्वाइप करें।
+                    3. अपनी ध्वनियाँ बिना सीमा जोड़ें। आप रिकॉर्ड कर सकते हैं, फोन से लगभग किसी भी फॉर्मेट में अपलोड कर सकते हैं, या डाउनलोड किए गए वीडियो/स्क्रीन रिकॉर्डिंग से ऑडियो निकालकर संपादित कर सकते हैं।
 
-                    4. अपलोड की गई ध्वनियाँ दोस्त को भेजी जा सकती हैं, ध्वनि को बाईं ओर स्वाइप करके।
+                    4. प्रभावों को जल्दी चालू/बंद करने के लिए विजेट लगाया जा सकता है।
 
-                    5. प्रभावों को जल्दी चालू और बंद करने के लिए विजेट लगाया जा सकता है।
-
-                    6. अगर कुछ काम नहीं करता या उम्मीद के मुताबिक नहीं लगता, तो हमें लिखें। हम जाँच करेंगे और ठीक करने की कोशिश करेंगे। यह हमारा पहला ऐप है, और आपका फीडबैक हमारे लिए बहुत महत्वपूर्ण है :)
-
-                    7. अगर ऐप ने आपको मुस्कुराया, तो कृपया एक समीक्षा छोड़ें।
+                    5. अगर कुछ काम नहीं करता या अजीब लगता है, तो खराब समीक्षा देने से पहले हमें लिखें। हम समस्या हल करेंगे। यह हमारा पहला ऐप है 🙂
                 """.trimIndent(),
-                guideAndDescription = "विवरण और निर्देश",
+                guideAndDescription = "निर्देश",
                 installWidget = "विजेट लगाएँ",
             )
             AppLanguage.ID -> base.copy(
@@ -501,34 +487,32 @@ data class AppStrings(
                 save = "Simpan",
                 cancel = "Batal",
                 name = "nama",
+                titleLabel = "Nama",
+                trimHelp = "Geser slider untuk mengedit",
                 fragment = "Fragmen",
                 buildingWaveform = "Membuat gelombang...",
                 pressToRecord = "Ketuk untuk merekam",
                 recording = "Merekam %s",
-                firstLaunchTitle = "Pertama kali?",
-                firstLaunchText = "Buka panduan singkat: ada tips untuk mengatur sensitivitas sesuai ponselmu.",
+                firstLaunchTitle = "JANGAN TERBURU-BURU!",
+                firstLaunchText = "Agar kesan pertama aplikasi tidak rusak, baca instruksi singkatnya.",
                 open = "Buka",
                 later = "Nanti",
                 modeUnavailable = "mode tidak tersedia",
                 modeOn = "mode aktif",
                 modeOff = "mode nonaktif",
-                guideTitle = "Deskripsi dan instruksi",
+                guideTitle = "Instruksi",
                 guideBody = """
-                    1. Atur «Sensitivitas». Sensor bisa bekerja berbeda di setiap ponsel. Jika sensitivitas diturunkan sampai minimum, efek tersebut akan mati sepenuhnya.
+                    1. Coba «Sensitivitas». Sensor bisa berbeda di setiap ponsel. Jika sensitivitas diturunkan sampai minimum, efek tersebut mati sepenuhnya.
 
-                    2. Tambahkan suara sendiri tanpa batas. Kamu bisa merekam suara, mengunggahnya dari ponsel dalam hampir semua format, atau mengekstrak audio dari video, misalnya dari klip yang diunduh atau rekaman layar, lalu memotong bagian yang dibutuhkan.
+                    2. Opsi «Tamparan» masih eksperimental. Jika sulit dipakai bersama efek jatuh, nyalakan salah satu saja.
 
-                    3. Suara bisa diedit dan diganti namanya. Geser suara ke kiri di menu pemilihan suara.
+                    3. Tambahkan suara sendiri tanpa batas. Kamu bisa merekam, mengunggah hampir semua format dari ponsel, atau mengekstrak audio dari video seperti klip unduhan atau rekaman layar, lalu mengeditnya.
 
-                    4. Suara yang diunggah juga bisa dikirim ke teman dengan menggeser suara ke kiri.
+                    4. Kamu bisa memasang widget untuk menyalakan dan mematikan efek dengan cepat.
 
-                    5. Kamu bisa menambahkan widget untuk menyalakan dan mematikan efek dengan cepat.
-
-                    6. Jika ada yang tidak berfungsi atau terasa tidak sesuai, tulis kepada kami. Kami akan memeriksanya dan mencoba memperbaikinya. Ini aplikasi pertama kami, jadi masukanmu sangat penting :)
-
-                    7. Jika aplikasi ini membuatmu tersenyum, mohon tinggalkan ulasan.
+                    5. Jika ada yang tidak berfungsi atau terasa salah, jangan langsung memberi ulasan buruk: tulis kepada kami dan kami akan menyelesaikannya. Ini aplikasi pertama kami 🙂
                 """.trimIndent(),
-                guideAndDescription = "Deskripsi dan instruksi",
+                guideAndDescription = "Instruksi",
                 installWidget = "Pasang widget",
             )
             AppLanguage.EN_US -> base
@@ -558,34 +542,32 @@ data class AppStrings(
             save = "Save",
             cancel = "Cancel",
             name = "name",
+            titleLabel = "Title",
+            trimHelp = "Move the sliders to edit",
             fragment = "Fragment",
             buildingWaveform = "Building waveform...",
             pressToRecord = "Tap to record",
             recording = "Recording %s",
-            firstLaunchTitle = "First launch?",
-            firstLaunchText = "Open the quick guide: it has tips for tuning sensitivity for your phone.",
+            firstLaunchTitle = "DON'T RUSH!",
+            firstLaunchText = "To keep your first impression of the app good, read the short instruction.",
             open = "Open",
             later = "Later",
             modeUnavailable = "mode unavailable",
             modeOn = "mode on",
             modeOff = "mode off",
-            guideTitle = "Description and instructions",
+            guideTitle = "Instruction",
             guideBody = """
-                1. Set «Sensitivity». Sensors can behave differently on different phones. If you move sensitivity all the way down, that effect turns off completely.
+                1. Try «Sensitivity». Sensors behave differently on different phones. If you turn sensitivity all the way down, that effect turns off completely.
 
-                2. Add your own sounds without limits. You can record a sound, upload it from your phone in almost any format, or extract audio from a video, for example from a downloaded clip or a screen recording, and then trim it.
+                2. The «Slap» option is experimental. If it does not combine well with fall detection, leave only one of them enabled.
 
-                3. Sounds can be edited and renamed. To do that, swipe a sound left in the sound picker.
+                3. Add your own sounds without limits. You can record one, upload almost any format from your phone, or extract audio from a video, such as a downloaded clip or screen recording, and edit it.
 
-                4. Uploaded sounds can be sent to a friend by swiping the sound left too.
+                4. You can install a widget for quick effect on/off.
 
-                5. You can add a widget for quick effect on/off.
-
-                6. If something does not work or feels wrong, please write to us. We will investigate and try to fix it. This is our first app, and your feedback really matters to us :)
-
-                7. If the app made you smile, please leave a review.
+                5. If something does not work or feels wrong, please do not rush to leave a bad review. Write to us and we will solve the problem. This is our first app 🙂
             """.trimIndent(),
-            guideAndDescription = "Description and instructions",
+            guideAndDescription = "Instruction",
             installWidget = "Install widget",
         )
 
@@ -613,34 +595,32 @@ data class AppStrings(
             save = "Сохранить",
             cancel = "Отмена",
             name = "название",
+            titleLabel = "Название",
+            trimHelp = "Двигай ползунки что бы редактировать",
             fragment = "Фрагмент",
             buildingWaveform = "Строю волну...",
             pressToRecord = "Нажмите для записи",
             recording = "Запись %s",
-            firstLaunchTitle = "Первый запуск?",
-            firstLaunchText = "Открой короткую инструкцию: там есть советы, как подобрать чувствительность под свой телефон.",
+            firstLaunchTitle = "НЕ СПЕШИ!",
+            firstLaunchText = "Чтобы не испортить первое впечатление от приложения, прочти короткую инструкцию",
             open = "Открыть",
             later = "Потом",
             modeUnavailable = "режим недоступен",
             modeOn = "режим включен",
             modeOff = "режим выключен",
-            guideTitle = "Описание и инструкция",
+            guideTitle = "Инструкция",
             guideBody = """
-                1. Настройте «Чувствительность». На разных телефонах датчики могут работать по-разному. Если уменьшить чувствительность до минимума, эффект полностью отключится.
+                1. Покрути «Чувствительность». У разных телефонов датчики ведут себя по-разному. Если убавить чувствительность на минимум, данный эффект выключится полностью.
 
-                2. Добавляйте свои звуки без ограничений. Вы можете записать звук через диктофон, загрузить его с телефона в любом формате или извлечь звук из видео — например, из скачанного ролика или записи экрана — и отредактировать его.
+                2. Опция «Шлепок» экспериментальная. Если не получается совместить её с падением, оставьте только одну.
 
-                3. Звуки можно редактировать и переименовывать. Для этого свайпните звук влево в меню выбора звуков.
+                3. Добавляй свои звуки без ограничений. Можно записать с диктофона, загрузить с телефона в любом формате или извлечь звук из видео, например из скачанного видео или записи экрана, и отредактировать.
 
-                4. Загруженные звуки можно отправить другу — также свайпнув звук влево.
+                4. Можно установить виджет для быстрого включения и выключения эффектов.
 
-                5. Можно установить виджет для быстрого включения и выключения эффектов.
-
-                6. Если что-то не работает или работает не так, как ожидалось, пожалуйста, напишите нам. Мы обязательно разберёмся и постараемся всё исправить. Это наше первое приложение, и ваша обратная связь очень важна для нас :)
-
-                7. Если вам понравилось приложение и оно вызвало у вас улыбку, пожалуйста, оставьте отзыв.
+                5. Если что-то не работает или работает не так, не спешите оставлять плохой отзыв: напишите нам об этом, и мы решим проблему. Это наше первое приложение 🙂
             """.trimIndent(),
-            guideAndDescription = "Описание и инструкция",
+            guideAndDescription = "Инструкция",
             installWidget = "Установить виджет",
         )
     }

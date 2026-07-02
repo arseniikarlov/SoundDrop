@@ -43,7 +43,13 @@ data class MainUiState(
     val clipDraft: EditableClipDraft? = null,
     val draftWaveform: List<Float> = emptyList(),
     val draftWaveformLoading: Boolean = false,
+    val editingSoundWaveformUri: String? = null,
+    val editingSoundWaveform: List<Float> = emptyList(),
+    val editingSoundDurationMs: Long = 1000L,
+    val editingSoundWaveformLoading: Boolean = false,
     val isProcessing: Boolean = false,
+    val noticeMessage: String? = null,
+    val noticeId: Long = 0L,
     val isPreviewingDraft: Boolean = false,
     val draftPreviewProgress: Float = 0f,
     val previewingSoundKey: String? = null,
@@ -90,6 +96,66 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setLanguage(language: AppLanguage) {
         updateSettings { copy(languageCode = language.code) }
         metricsRepository.recordLanguageSelected(language)
+    }
+
+    fun clearNotice() {
+        _uiState.update { current ->
+            current.copy(noticeMessage = null)
+        }
+    }
+
+    fun loadEditingSoundWaveform(uri: String) {
+        val currentState = _uiState.value
+        if (currentState.editingSoundWaveformUri == uri && currentState.editingSoundWaveform.isNotEmpty()) {
+            return
+        }
+
+        _uiState.update { current ->
+            current.copy(
+                editingSoundWaveformUri = uri,
+                editingSoundWaveform = emptyList(),
+                editingSoundDurationMs = 1000L,
+                editingSoundWaveformLoading = true,
+            )
+        }
+
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val waveform = audioStudio.readWaveform(uri)
+                    val durationMs = audioStudio.readDurationMs(uri)
+                    waveform to durationMs
+                }
+            }
+            _uiState.update { current ->
+                if (current.editingSoundWaveformUri != uri) {
+                    current
+                } else {
+                    val data = result.getOrNull()
+                    current.copy(
+                        editingSoundWaveform = data?.first.orEmpty(),
+                        editingSoundDurationMs = data?.second ?: current.editingSoundDurationMs,
+                        editingSoundWaveformLoading = false,
+                        statusMessage = result.exceptionOrNull()?.message ?: current.statusMessage,
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearEditingSoundWaveform(uri: String? = null) {
+        _uiState.update { current ->
+            if (uri != null && current.editingSoundWaveformUri != uri) {
+                current
+            } else {
+                current.copy(
+                    editingSoundWaveformUri = null,
+                    editingSoundWaveform = emptyList(),
+                    editingSoundDurationMs = 1000L,
+                    editingSoundWaveformLoading = false,
+                )
+            }
+        }
     }
 
     fun reloadSettingsFromStorage() {
@@ -475,9 +541,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             result.onSuccess { customSound ->
                 val currentDraft = _uiState.value.clipDraft
+                val successMessage = "Звук успешно сохранен, появится в настройках при выборе звука"
                 addCustomSoundEntries(
                     listOf(customSound),
-                    successMessage = "Добавил `${customSound.displayName}` в Мои звуки",
+                    successMessage = successMessage,
                 )
                 audioStudio.discardDraft(currentDraft)
                 _uiState.update { current ->
@@ -490,6 +557,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         draftPreviewProgress = 0f,
                     )
                 }
+                showNotice(successMessage)
             }.onFailure { error ->
                 _uiState.update { current ->
                     current.copy(
@@ -573,6 +641,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
         _uiState.update { current ->
             current.copy(statusMessage = successMessage)
+        }
+    }
+
+    private fun showNotice(message: String) {
+        _uiState.update { current ->
+            current.copy(
+                noticeMessage = message,
+                noticeId = current.noticeId + 1L,
+            )
         }
     }
 

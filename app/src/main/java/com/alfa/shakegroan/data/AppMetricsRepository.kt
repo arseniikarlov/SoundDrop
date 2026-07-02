@@ -104,6 +104,7 @@ class AppMetricsRepository(context: Context) {
             params = mapOf(
                 "language_code" to language.code,
                 "language_label" to language.label,
+                "language_native_label" to language.nativeLabel,
             )
         )
     }

@@ -4,7 +4,6 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.pm.PackageManager
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -13,7 +12,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -89,14 +87,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -107,11 +103,13 @@ import com.alfa.shakegroan.data.AppSettings
 import com.alfa.shakegroan.data.AssignTarget
 import com.alfa.shakegroan.data.CustomSound
 import com.alfa.shakegroan.data.SoundAssignment
+import com.alfa.shakegroan.data.SoundSourceType
 import com.alfa.shakegroan.data.effectiveLanguage
 import com.alfa.shakegroan.media.DraftSourceKind
 import com.alfa.shakegroan.media.TrimSelectionNormalizer
 import com.alfa.shakegroan.ui.theme.NunitoFontFamily
 import com.alfa.shakegroan.widget.FallOuchWidgetProvider
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 private val AppBackground = Color(0xFF171717)
@@ -274,6 +272,7 @@ fun ShakeGroanApp(
                 onSelectedKeyChange = { stagedSoundKey = it },
                 onCancel = {
                     viewModel.stopSoundPreview()
+                    viewModel.clearEditingSoundWaveform()
                     currentScreen = AppScreen.SETTINGS
                 },
                 onSave = {
@@ -285,18 +284,22 @@ fun ShakeGroanApp(
                         viewModel.assignSound(assignment, soundTarget.toAssignTarget())
                     }
                     viewModel.stopSoundPreview()
+                    viewModel.clearEditingSoundWaveform()
                     currentScreen = AppScreen.SETTINGS
                 },
                 onPreview = viewModel::toggleSoundPreview,
                 onOpenUpload = {
                     viewModel.stopSoundPreview()
                     viewModel.discardClipDraft()
+                    viewModel.clearEditingSoundWaveform()
                     stagedSoundKey = null
                     studioSourceScreen = AppScreen.UPLOAD_MENU
                     currentScreen = AppScreen.UPLOAD_MENU
                 },
                 onDeleteCustomSound = viewModel::deleteCustomSound,
                 onRenameCustomSound = viewModel::renameCustomSound,
+                onLoadEditingSoundWaveform = viewModel::loadEditingSoundWaveform,
+                onClearEditingSoundWaveform = viewModel::clearEditingSoundWaveform,
             )
 
             AppScreen.UPLOAD_MENU -> UploadMenuScreen(
@@ -403,6 +406,13 @@ fun ShakeGroanApp(
             if (uiState.isProcessing) {
                 BusyOverlay(uiState.statusMessage)
             }
+            uiState.noticeMessage?.let { message ->
+                NoticeBanner(
+                    message = message,
+                    noticeId = uiState.noticeId,
+                    onDismiss = viewModel::clearNotice,
+                )
+            }
         }
     }
 }
@@ -417,10 +427,12 @@ private fun HomeScreen(
 ) {
     val isOn = state.settings.isArmed && hasAccelerometer
     val strings = LocalAppStrings.current
+    val showIntro = !state.settings.hasSeenIntroGuide
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 22.dp, vertical = 24.dp)
             .padding(bottom = 92.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -429,7 +441,7 @@ private fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp),
+                .height(if (showIntro) 250.dp else 300.dp),
             contentAlignment = Alignment.Center
         ) {
             BrandLogo(
@@ -440,7 +452,7 @@ private fun HomeScreen(
                 alignCenter = true,
             )
         }
-        Spacer(modifier = Modifier.weight(0.7f))
+        Spacer(modifier = Modifier.height(if (showIntro) 6.dp else 44.dp))
         PowerHeroButton(
             isOn = isOn,
             enabled = hasAccelerometer,
@@ -455,14 +467,14 @@ private fun HomeScreen(
             },
             active = isOn && hasAccelerometer,
         )
-        if (!state.settings.hasSeenIntroGuide) {
+        if (showIntro) {
             Spacer(modifier = Modifier.height(20.dp))
             HomeIntroPush(
                 onOpenGuide = onOpenGuide,
                 onDismiss = onDismissIntro,
             )
         }
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -496,6 +508,7 @@ private fun HomeIntroPush(
                 lineHeight = 20.sp
             )
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -505,7 +518,8 @@ private fun HomeIntroPush(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppAccent,
                         contentColor = Color(0xFF08111F)
-                    )
+                    ),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(strings.open)
                 }
@@ -514,7 +528,8 @@ private fun HomeIntroPush(
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = AppTextMuted
-                    )
+                    ),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(strings.later)
                 }
@@ -581,7 +596,7 @@ private fun SettingsScreen(
 
         Text(strings.language, style = MaterialTheme.typography.titleLarge, color = AppTextSoft)
         CardBlock {
-            SettingSoundRow(strings.appLanguage, state.settings.effectiveLanguage().label, onOpenLanguage)
+            SettingSoundRow(strings.appLanguage, state.settings.effectiveLanguage().nativeLabel, onOpenLanguage)
         }
     }
 }
@@ -700,7 +715,7 @@ private fun LanguageOptionRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = language.label,
+            text = language.nativeLabel,
             style = MaterialTheme.typography.bodyLarge,
             color = if (selected) AppAccent else AppTextSoft,
             modifier = Modifier.weight(1f)
@@ -727,6 +742,8 @@ private fun SoundPickerScreen(
     onOpenUpload: () -> Unit,
     onDeleteCustomSound: (String) -> Unit,
     onRenameCustomSound: (String, String) -> Unit,
+    onLoadEditingSoundWaveform: (String) -> Unit,
+    onClearEditingSoundWaveform: (String?) -> Unit,
 ) {
     val strings = LocalAppStrings.current
     val currentAssignment = currentAssignmentFor(target, state.settings)
@@ -772,7 +789,7 @@ private fun SoundPickerScreen(
                 mineOptions.forEachIndexed { index, option ->
                     val optionKey = assignmentKey(option.assignment)
                     val isSelected = optionKey == assignmentKey(resolvedSelection)
-                    SwipeableSoundPickRow(
+                    EditableSoundPickRow(
                         title = option.title,
                         selected = isSelected,
                         playing = state.previewingSoundKey == optionKey,
@@ -782,10 +799,12 @@ private fun SoundPickerScreen(
                         onEdit = {
                             renameUri = option.assignment.reference
                             renameValue = option.title
+                            onLoadEditingSoundWaveform(option.assignment.reference)
                         },
                         onDelete = {
                             onDeleteCustomSound(option.assignment.reference)
                             if (renameUri == option.assignment.reference) {
+                                onClearEditingSoundWaveform(renameUri)
                                 renameUri = null
                                 renameValue = ""
                             }
@@ -807,7 +826,24 @@ private fun SoundPickerScreen(
                     value = renameValue,
                     onValueChange = { renameValue = it },
                     strings = strings,
+                    samples = if (state.editingSoundWaveformUri == renameUri) state.editingSoundWaveform else emptyList(),
+                    durationMs = if (state.editingSoundWaveformUri == renameUri) state.editingSoundDurationMs else 1000L,
+                    loading = state.editingSoundWaveformUri == renameUri && state.editingSoundWaveformLoading,
+                    playing = renameUri?.let { uri -> state.previewingSoundKey == assignmentKey(SoundAssignment(SoundSourceType.CUSTOM, uri, renameValue)) } == true,
+                    progress = renameUri?.let { uri ->
+                        if (state.previewingSoundKey == assignmentKey(SoundAssignment(SoundSourceType.CUSTOM, uri, renameValue))) {
+                            state.previewProgress
+                        } else {
+                            0f
+                        }
+                    } ?: 0f,
+                    onPreview = {
+                        renameUri?.let { uri ->
+                            onPreview(SoundAssignment(SoundSourceType.CUSTOM, uri, renameValue))
+                        }
+                    },
                     onCancel = {
+                        onClearEditingSoundWaveform(renameUri)
                         renameUri = null
                         renameValue = ""
                     },
@@ -815,6 +851,7 @@ private fun SoundPickerScreen(
                         renameUri?.let { uri ->
                             onRenameCustomSound(uri, renameValue)
                         }
+                        onClearEditingSoundWaveform(renameUri)
                         renameUri = null
                         renameValue = ""
                     }
@@ -1030,6 +1067,12 @@ private fun TrimScreen(
                 onSave = { onSave(fileName, selection.startMs, selection.endMs) },
             )
             Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = strings.titleLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTextMuted,
+                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+            )
             OutlinedTextField(
                 value = fileName,
                 onValueChange = { fileName = it },
@@ -1078,6 +1121,12 @@ private fun TrimScreen(
                 )
             }
             Spacer(modifier = Modifier.height(18.dp))
+            Text(
+                text = strings.trimHelp,
+                style = MaterialTheme.typography.bodySmall,
+                color = AppTextMuted,
+                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+            )
             SliderLabel(
                 label = strings.fragment,
                 value = "${formatDuration(selection.startMs)} - ${formatDuration(selection.endMs)}"
@@ -1365,13 +1414,14 @@ private fun ModeSliderRow(
     onProgressChange: (Float) -> Unit,
     accent: Color = AppAccent,
 ) {
+    val strings = LocalAppStrings.current
     val visibleProgress = if (enabled) progress.coerceIn(0f, 1f) else 0f
 
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = if (enabled) title else "$title (выкл)",
+            text = if (enabled) title else "$title (${strings.modeOff})",
             style = MaterialTheme.typography.bodyLarge,
             color = if (enabled) accent else AppTextMuted,
         )
@@ -1544,7 +1594,7 @@ private fun SectionLabel(text: String) {
 }
 
 @Composable
-private fun SwipeableSoundPickRow(
+private fun EditableSoundPickRow(
     title: String,
     selected: Boolean,
     playing: Boolean,
@@ -1554,104 +1604,60 @@ private fun SwipeableSoundPickRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val revealWidthPx = with(LocalDensity.current) { 116.dp.toPx() }
-    var revealed by rememberSaveable(title) { mutableStateOf(false) }
-    var dragOffset by remember { mutableFloatStateOf(0f) }
-    val targetOffset = if (revealed) -revealWidthPx else 0f
-    val animatedOffset by animateFloatAsState(
-        targetValue = targetOffset + dragOffset,
-        label = "sound-row-offset"
-    )
-
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .padding(vertical = 12.dp),
     ) {
         Row(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .height(56.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SwipeActionButton(
-                color = AppAccent,
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = AppTextSoft,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onClick)
+                    .padding(vertical = 4.dp)
+            )
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = AppTextSoft
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+            MiniCircleButton(
+                background = AppAccent,
+                border = AppAccent,
                 icon = Icons.Rounded.Edit,
-                onClick = {
-                    revealed = false
-                    onEdit()
-                }
+                tint = Color.White,
+                onClick = onEdit
             )
-            SwipeActionButton(
-                color = AppDanger,
+            Spacer(modifier = Modifier.width(8.dp))
+            MiniCircleButton(
+                background = AppDanger,
+                border = AppDanger,
                 icon = Icons.Rounded.Delete,
-                onClick = {
-                    revealed = false
-                    onDelete()
-                }
+                tint = Color.White,
+                onClick = onDelete
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            MiniCircleButton(
+                background = AppBackgroundSoft,
+                border = AppStrokeSoft,
+                icon = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                tint = AppAccent,
+                onClick = onPreview
             )
         }
-
-        Surface(
-            color = AppCard,
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                .pointerInput(title, revealed, revealWidthPx) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            revealed = targetOffset + dragOffset < -revealWidthPx * 0.45f
-                            dragOffset = 0f
-                        },
-                        onDragCancel = {
-                            dragOffset = 0f
-                        },
-                        onHorizontalDrag = { _, dragAmount ->
-                            dragOffset = if (revealed) {
-                                (dragOffset + dragAmount).coerceIn(0f, revealWidthPx)
-                            } else {
-                                (dragOffset + dragAmount).coerceIn(-revealWidthPx, 24f)
-                            }
-                        }
-                    )
-                }
-        ) {
-            SoundPickRow(
-                title = title,
-                selected = selected,
-                playing = playing,
-                progress = progress,
-                onClick = {
-                    if (revealed) {
-                        revealed = false
-                    } else {
-                        onClick()
-                    }
-                },
-                onPreview = onPreview,
-            )
+        if (playing) {
+            Spacer(modifier = Modifier.height(8.dp))
+            PlaybackTimeline(progress = progress)
         }
-    }
-}
-
-@Composable
-private fun SwipeActionButton(
-    color: Color,
-    icon: ImageVector,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(width = 58.dp, height = 56.dp)
-            .background(color)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.White
-        )
     }
 }
 
@@ -1704,10 +1710,13 @@ private fun SoundPickRow(
 }
 
 @Composable
-private fun PlaybackTimeline(progress: Float) {
+private fun PlaybackTimeline(
+    progress: Float,
+    modifier: Modifier = Modifier,
+) {
     val safeProgress = progress.coerceIn(0f, 1f)
     Canvas(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(14.dp)
             .padding(horizontal = 2.dp)
@@ -1763,12 +1772,35 @@ private fun RenameCard(
     value: String,
     onValueChange: (String) -> Unit,
     strings: AppStrings,
+    samples: List<Float>,
+    durationMs: Long,
+    loading: Boolean,
+    playing: Boolean,
+    progress: Float,
+    onPreview: () -> Unit,
     onCancel: () -> Unit,
     onSave: () -> Unit,
 ) {
+    val safeDurationMs = durationMs.coerceAtLeast(1L)
+    var startFraction by rememberSaveable(value) { mutableFloatStateOf(0f) }
+    var endFraction by rememberSaveable(value) { mutableFloatStateOf(1f) }
+    val selection = remember(startFraction, endFraction, safeDurationMs) {
+        TrimSelectionNormalizer.normalize(
+            durationMs = safeDurationMs,
+            startMs = (startFraction * safeDurationMs).roundToInt().toLong(),
+            endMs = (endFraction * safeDurationMs).roundToInt().toLong(),
+        )
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
+        Text(
+            text = strings.titleLabel,
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppTextMuted,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -1779,6 +1811,59 @@ private fun RenameCard(
             placeholder = { Text(strings.name, color = AppTextMuted) },
         )
         Spacer(modifier = Modifier.height(12.dp))
+        CardBlock {
+            WaveformPreview(
+                startFraction = selection.startMs / safeDurationMs.toFloat(),
+                endFraction = selection.endMs / safeDurationMs.toFloat(),
+                samples = samples,
+                playFraction = if (playing) progress else null,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (loading) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = strings.buildingWaveform,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppTextMuted,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            PlayPreviewButton(
+                playing = playing,
+                onClick = onPreview
+            )
+        }
+        Spacer(modifier = Modifier.height(14.dp))
+        Text(
+            text = strings.trimHelp,
+            style = MaterialTheme.typography.bodySmall,
+            color = AppTextMuted,
+            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+        )
+        SliderLabel(
+            label = strings.fragment,
+            value = "${formatDuration(selection.startMs)} - ${formatDuration(selection.endMs)}"
+        )
+        RangeSlider(
+            value = (selection.startMs / safeDurationMs.toFloat())..(selection.endMs / safeDurationMs.toFloat()),
+            onValueChange = { range ->
+                val normalized = TrimSelectionNormalizer.normalize(
+                    durationMs = safeDurationMs,
+                    startMs = (range.start * safeDurationMs).roundToInt().toLong(),
+                    endMs = (range.endInclusive * safeDurationMs).roundToInt().toLong(),
+                )
+                startFraction = normalized.startMs / safeDurationMs.toFloat()
+                endFraction = normalized.endMs / safeDurationMs.toFloat()
+            },
+            colors = SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = AppAccent,
+                inactiveTrackColor = AppStrokeSoft,
+            )
+        )
+        Spacer(modifier = Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(
                 onClick = onCancel,
@@ -2044,6 +2129,52 @@ private fun MiniCircleButton(
             tint = tint,
             modifier = Modifier.graphicsLayer(rotationZ = rotate)
         )
+    }
+}
+
+@Composable
+private fun NoticeBanner(
+    message: String,
+    noticeId: Long,
+    onDismiss: () -> Unit,
+) {
+    LaunchedEffect(noticeId) {
+        delay(6_000L)
+        onDismiss()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 104.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = AppCard.copy(alpha = 0.96f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, AppAccent.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = AppAccent
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppTextSoft,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
     }
 }
 

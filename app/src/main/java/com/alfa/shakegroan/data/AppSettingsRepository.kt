@@ -16,11 +16,11 @@ class AppSettingsRepository(context: Context) {
         val storedCooldownMs = preferences.getInt(KEY_COOLDOWN_MS, 1000)
         val throwImpactThreshold = when {
             settingsVersion < CURRENT_SETTINGS_VERSION &&
-                (storedThrowThreshold == 22.0f || storedThrowThreshold == 19.0f || storedThrowThreshold == 47.5f || storedThrowThreshold == 95.0f) -> DEFAULT_THROW_THRESHOLD
+                (storedThrowThreshold == 22.0f || storedThrowThreshold == 19.0f || storedThrowThreshold == 47.5f || storedThrowThreshold == 67.0f || storedThrowThreshold == 95.0f) -> DEFAULT_THROW_THRESHOLD
             else -> storedThrowThreshold
         }
         val slapImpactThreshold = when {
-            settingsVersion < CURRENT_SETTINGS_VERSION && storedSlapThreshold == 18.0f -> DEFAULT_SLAP_THRESHOLD
+            settingsVersion < CURRENT_SETTINGS_VERSION && (storedSlapThreshold == 13.0f || storedSlapThreshold == 18.0f) -> DEFAULT_SLAP_THRESHOLD
             else -> storedSlapThreshold
         }
         val cooldownMs = if (settingsVersion < CURRENT_SETTINGS_VERSION && storedCooldownMs == 1400) {
@@ -28,15 +28,20 @@ class AppSettingsRepository(context: Context) {
         } else {
             storedCooldownMs
         }
+        val playbackVolume = if (settingsVersion < CURRENT_SETTINGS_VERSION && preferences.getFloat(KEY_VOLUME, DEFAULT_VOLUME) == 0.9f) {
+            DEFAULT_VOLUME
+        } else {
+            preferences.getFloat(KEY_VOLUME, DEFAULT_VOLUME)
+        }
         val snapshot = StoredSettingsSnapshot(
             isArmed = preferences.getBoolean(KEY_ARMED, false),
             hasSeenIntroGuide = preferences.getBoolean(KEY_SEEN_INTRO_GUIDE, false),
             throwEnabled = preferences.getBoolean(KEY_THROW_ENABLED, true),
-            slapEnabled = preferences.getBoolean(KEY_SLAP_ENABLED, true),
+            slapEnabled = preferences.getBoolean(KEY_SLAP_ENABLED, DEFAULT_SLAP_ENABLED),
             throwImpactThreshold = throwImpactThreshold,
             slapImpactThreshold = slapImpactThreshold,
             cooldownMs = cooldownMs,
-            playbackVolume = preferences.getFloat(KEY_VOLUME, 0.9f),
+            playbackVolume = playbackVolume,
             languageCode = preferences.getString(KEY_LANGUAGE, null),
             throwSoundRaw = preferences.getString(KEY_THROW_SOUND, null),
             slapSoundRaw = preferences.getString(KEY_SLAP_SOUND, null),
@@ -70,9 +75,11 @@ class AppSettingsRepository(context: Context) {
     }
 
     private companion object {
-        const val CURRENT_SETTINGS_VERSION = 5
-        const val DEFAULT_THROW_THRESHOLD = 67.0f
-        const val DEFAULT_SLAP_THRESHOLD = 13.0f
+        const val CURRENT_SETTINGS_VERSION = 6
+        const val DEFAULT_THROW_THRESHOLD = 50.0f
+        const val DEFAULT_SLAP_THRESHOLD = 24.0f
+        const val DEFAULT_VOLUME = 0.5f
+        const val DEFAULT_SLAP_ENABLED = false
         const val PREFS_NAME = "shake_groan_settings"
         const val KEY_SETTINGS_VERSION = "settings_version"
         const val KEY_ARMED = "armed"
@@ -96,11 +103,11 @@ internal data class StoredSettingsSnapshot(
     val isArmed: Boolean = false,
     val hasSeenIntroGuide: Boolean = false,
     val throwEnabled: Boolean = true,
-    val slapEnabled: Boolean = true,
-    val throwImpactThreshold: Float = 67.0f,
-    val slapImpactThreshold: Float = 13.0f,
+    val slapEnabled: Boolean = false,
+    val throwImpactThreshold: Float = 50.0f,
+    val slapImpactThreshold: Float = 24.0f,
     val cooldownMs: Int = 1000,
-    val playbackVolume: Float = 0.9f,
+    val playbackVolume: Float = 0.5f,
     val languageCode: String? = null,
     val throwSoundRaw: String? = null,
     val slapSoundRaw: String? = null,
@@ -239,6 +246,7 @@ internal object AppSettingsStorageMapper {
 
     private val legacyThrowDefaultIds = setOf(
         "archive_aaaaaa",
+        "archive4_aaaaaa",
         "archive_tom_scream2",
         "clean_tom_scream",
     )

@@ -22,18 +22,19 @@ enum class SoundSourceType {
 enum class AppLanguage(
     val code: String,
     val label: String,
+    val nativeLabel: String,
 ) {
-    EN_US("en-US", "English US"),
-    ES("es", "Spanish"),
-    IT("it", "Italian"),
-    PT_BR("pt-BR", "Portuguese Brazil"),
-    DE("de", "German"),
-    FR("fr", "French"),
-    JA("ja", "Japanese"),
-    KO("ko", "Korean"),
-    RU("ru", "Russian"),
-    HI("hi", "Hindi"),
-    ID("id", "Indonesian");
+    EN_US("en-US", "English US", "English US"),
+    ES("es", "Spanish", "Español"),
+    IT("it", "Italian", "Italiano"),
+    PT_BR("pt-BR", "Portuguese Brazil", "Português Brasil"),
+    DE("de", "German", "Deutsch"),
+    FR("fr", "French", "Français"),
+    JA("ja", "Japanese", "日本語"),
+    KO("ko", "Korean", "한국어"),
+    RU("ru", "Russian", "Русский"),
+    HI("hi", "Hindi", "हिन्दी"),
+    ID("id", "Indonesian", "Bahasa Indonesia");
 
     companion object {
         fun fromCode(code: String?): AppLanguage? {
@@ -90,16 +91,16 @@ data class AppSettings(
     val isArmed: Boolean = false,
     val hasSeenIntroGuide: Boolean = false,
     val throwEnabled: Boolean = true,
-    val slapEnabled: Boolean = true,
-    val throwImpactThreshold: Float = 67.0f,
-    val slapImpactThreshold: Float = 13.0f,
+    val slapEnabled: Boolean = false,
+    val throwImpactThreshold: Float = 50.0f,
+    val slapImpactThreshold: Float = 24.0f,
     val cooldownMs: Int = 1000,
-    val playbackVolume: Float = 0.9f,
+    val playbackVolume: Float = 0.5f,
     val languageCode: String? = null,
     val throwSound: SoundAssignment = SoundAssignment(
         sourceType = SoundSourceType.BUILT_IN_CLEAN,
-        reference = "archive4_aaaaaa",
-        displayName = "AAAAAA",
+        reference = "archive4_tom_scream",
+        displayName = "Tom Scream",
     ),
     val slapSound: SoundAssignment = SoundAssignment(
         sourceType = SoundSourceType.BUILT_IN_CLEAN,

@@ -199,9 +199,10 @@ class AudioStudioManager(
 
         val uri = Uri.parse(draft.sourceUri)
         val player = MediaPlayer()
+        val playerVolume = effectivePreviewVolume(volume)
         previewPlayer = player
         player.setOnPreparedListener { mediaPlayer ->
-            mediaPlayer.setVolume(volume, volume)
+            mediaPlayer.setVolume(playerVolume, playerVolume)
             if (selection.startMs > 0L) {
                 mediaPlayer.seekTo(selection.startMs.toInt())
             }
@@ -244,6 +245,11 @@ class AudioStudioManager(
         previewPlayer?.stopSafely()
         previewPlayer?.release()
         previewPlayer = null
+    }
+
+    private fun effectivePreviewVolume(volume: Float): Float {
+        val safeVolume = volume.coerceIn(0f, 1f)
+        return safeVolume * safeVolume
     }
 
     private fun startPreviewProgressUpdates(
@@ -389,6 +395,10 @@ class AudioStudioManager(
         if (draft?.isTemporarySource == true) {
             deleteLocalUri(draft.sourceUri)
         }
+    }
+
+    fun readDurationMs(uriString: String): Long {
+        return readDurationMs(Uri.parse(uriString)).coerceAtLeast(1000L)
     }
 
     fun release() {
