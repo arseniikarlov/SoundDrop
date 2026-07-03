@@ -525,6 +525,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         displayName: String,
         startMs: Long,
         endMs: Long,
+        successMessage: String,
     ) {
         val draft = _uiState.value.clipDraft ?: return
         viewModelScope.launch {
@@ -541,7 +542,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             result.onSuccess { customSound ->
                 val currentDraft = _uiState.value.clipDraft
-                val successMessage = "Звук успешно сохранен, появится в настройках при выборе звука"
                 addCustomSoundEntries(
                     listOf(customSound),
                     successMessage = successMessage,

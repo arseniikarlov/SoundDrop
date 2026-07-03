@@ -54,6 +54,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material.icons.rounded.Widgets
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -354,7 +355,7 @@ fun ShakeGroanApp(
                 onTogglePreview = viewModel::toggleDraftPreview,
                 onStopPreview = viewModel::stopDraftPreview,
                 onSave = { displayName, startMs, endMs ->
-                    viewModel.saveDraftToMySounds(displayName, startMs, endMs)
+                    viewModel.saveDraftToMySounds(displayName, startMs, endMs, appStrings.soundSavedNotice)
                     currentScreen = AppScreen.UPLOAD
                 },
             )
@@ -770,6 +771,8 @@ private fun SoundPickerScreen(
 
     var renameUri by rememberSaveable { mutableStateOf<String?>(null) }
     var renameValue by rememberSaveable { mutableStateOf("") }
+    var pendingDeleteUri by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingDeleteTitle by rememberSaveable { mutableStateOf("") }
 
     ModalScreenScaffold {
         StickyHeaderBottomSheetPanel(
@@ -802,12 +805,8 @@ private fun SoundPickerScreen(
                             onLoadEditingSoundWaveform(option.assignment.reference)
                         },
                         onDelete = {
-                            onDeleteCustomSound(option.assignment.reference)
-                            if (renameUri == option.assignment.reference) {
-                                onClearEditingSoundWaveform(renameUri)
-                                renameUri = null
-                                renameValue = ""
-                            }
+                            pendingDeleteUri = option.assignment.reference
+                            pendingDeleteTitle = option.title
                         },
                     )
                     if (index != mineOptions.lastIndex) {
@@ -854,6 +853,27 @@ private fun SoundPickerScreen(
                         onClearEditingSoundWaveform(renameUri)
                         renameUri = null
                         renameValue = ""
+                    }
+                )
+            }
+
+            pendingDeleteUri?.let { uri ->
+                ConfirmDeleteSoundDialog(
+                    soundName = pendingDeleteTitle,
+                    strings = strings,
+                    onDismiss = {
+                        pendingDeleteUri = null
+                        pendingDeleteTitle = ""
+                    },
+                    onConfirm = {
+                        onDeleteCustomSound(uri)
+                        if (renameUri == uri) {
+                            onClearEditingSoundWaveform(renameUri)
+                            renameUri = null
+                            renameValue = ""
+                        }
+                        pendingDeleteUri = null
+                        pendingDeleteTitle = ""
                     }
                 )
             }
@@ -1887,6 +1907,68 @@ private fun RenameCard(
             }
         }
     }
+}
+
+@Composable
+private fun ConfirmDeleteSoundDialog(
+    soundName: String,
+    strings: AppStrings,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = AppCard,
+        titleContentColor = AppTextSoft,
+        textContentColor = AppTextMuted,
+        title = {
+            Text(
+                text = strings.deleteSoundTitle,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = strings.deleteSoundMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    lineHeight = 20.sp
+                )
+                if (soundName.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = soundName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = AppTextSoft,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = AppTextMuted),
+                border = androidx.compose.foundation.BorderStroke(1.dp, AppStrokeSoft),
+            ) {
+                Text(strings.cancel)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AppDanger,
+                    contentColor = Color.White
+                )
+            ) {
+                Text(strings.deleteSoundAction)
+            }
+        }
+    )
 }
 
 @Composable

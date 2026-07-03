@@ -43,6 +43,10 @@ data class AppStrings(
     val guideBody: String,
     val guideAndDescription: String,
     val installWidget: String,
+    val soundSavedNotice: String,
+    val deleteSoundTitle: String,
+    val deleteSoundMessage: String,
+    val deleteSoundAction: String,
 ) {
     companion object {
         fun forLanguage(language: AppLanguage): AppStrings = when (language) {
@@ -98,6 +102,10 @@ data class AppStrings(
                 """.trimIndent(),
                 guideAndDescription = "Instrucción",
                 installWidget = "Instalar widget",
+                soundSavedNotice = "Sonido guardado. Aparecerá en Ajustes cuando elijas un sonido.",
+                deleteSoundTitle = "¿Eliminar sonido?",
+                deleteSoundMessage = "Este sonido se eliminará de Mis sonidos. No se puede deshacer.",
+                deleteSoundAction = "Eliminar",
             )
             AppLanguage.IT -> base.copy(
                 home = "Home",
@@ -150,6 +158,10 @@ data class AppStrings(
                 """.trimIndent(),
                 guideAndDescription = "Istruzione",
                 installWidget = "Installa widget",
+                soundSavedNotice = "Suono salvato. Apparirà nelle impostazioni quando scegli un suono.",
+                deleteSoundTitle = "Eliminare il suono?",
+                deleteSoundMessage = "Questo suono verrà rimosso dai tuoi suoni. L’azione non può essere annullata.",
+                deleteSoundAction = "Elimina",
             )
             AppLanguage.PT_BR -> base.copy(
                 home = "Início",
@@ -202,6 +214,10 @@ data class AppStrings(
                 """.trimIndent(),
                 guideAndDescription = "Instrução",
                 installWidget = "Instalar widget",
+                soundSavedNotice = "Som salvo. Ele aparecerá nas configurações ao escolher um som.",
+                deleteSoundTitle = "Excluir som?",
+                deleteSoundMessage = "Este som será removido dos seus sons. Esta ação não pode ser desfeita.",
+                deleteSoundAction = "Excluir",
             )
             AppLanguage.DE -> base.copy(
                 home = "Start",
@@ -254,6 +270,10 @@ data class AppStrings(
                 """.trimIndent(),
                 guideAndDescription = "Anleitung",
                 installWidget = "Widget installieren",
+                soundSavedNotice = "Sound gespeichert. Er erscheint in den Einstellungen, wenn du einen Sound auswählst.",
+                deleteSoundTitle = "Sound löschen?",
+                deleteSoundMessage = "Dieser Sound wird aus deinen Sounds entfernt. Das kann nicht rückgängig gemacht werden.",
+                deleteSoundAction = "Löschen",
             )
             AppLanguage.FR -> base.copy(
                 home = "Accueil",
@@ -306,6 +326,10 @@ data class AppStrings(
                 """.trimIndent(),
                 guideAndDescription = "Instruction",
                 installWidget = "Installer le widget",
+                soundSavedNotice = "Son enregistré. Il apparaîtra dans les réglages au moment de choisir un son.",
+                deleteSoundTitle = "Supprimer le son ?",
+                deleteSoundMessage = "Ce son sera supprimé de vos sons. Cette action est irréversible.",
+                deleteSoundAction = "Supprimer",
             )
             AppLanguage.JA -> base.copy(
                 home = "ホーム",
@@ -358,6 +382,10 @@ data class AppStrings(
                 """.trimIndent(),
                 guideAndDescription = "使い方",
                 installWidget = "ウィジェットを追加",
+                soundSavedNotice = "サウンドを保存しました。設定でサウンドを選ぶと表示されます。",
+                deleteSoundTitle = "サウンドを削除しますか？",
+                deleteSoundMessage = "このサウンドはマイサウンドから削除されます。元に戻せません。",
+                deleteSoundAction = "削除",
             )
             AppLanguage.KO -> base.copy(
                 home = "홈",
@@ -410,6 +438,10 @@ data class AppStrings(
                 """.trimIndent(),
                 guideAndDescription = "안내",
                 installWidget = "위젯 설치",
+                soundSavedNotice = "사운드가 저장되었습니다. 설정에서 사운드를 선택할 때 표시됩니다.",
+                deleteSoundTitle = "사운드를 삭제할까요?",
+                deleteSoundMessage = "이 사운드는 내 사운드에서 삭제됩니다. 되돌릴 수 없습니다.",
+                deleteSoundAction = "삭제",
             )
             AppLanguage.HI -> base.copy(
                 home = "होम",
@@ -462,6 +494,10 @@ data class AppStrings(
                 """.trimIndent(),
                 guideAndDescription = "निर्देश",
                 installWidget = "विजेट लगाएँ",
+                soundSavedNotice = "ध्वनि सेव हो गई है। सेटिंग्स में ध्वनि चुनते समय यह दिखाई देगी.",
+                deleteSoundTitle = "ध्वनि हटाएँ?",
+                deleteSoundMessage = "यह ध्वनि आपकी ध्वनियों से हटा दी जाएगी। इसे वापस नहीं किया जा सकता.",
+                deleteSoundAction = "हटाएँ",
             )
             AppLanguage.ID -> base.copy(
                 home = "Beranda",
@@ -514,6 +550,10 @@ data class AppStrings(
                 """.trimIndent(),
                 guideAndDescription = "Instruksi",
                 installWidget = "Pasang widget",
+                soundSavedNotice = "Suara disimpan. Suara ini akan muncul di Pengaturan saat memilih suara.",
+                deleteSoundTitle = "Hapus suara?",
+                deleteSoundMessage = "Suara ini akan dihapus dari Suara saya. Tindakan ini tidak bisa dibatalkan.",
+                deleteSoundAction = "Hapus",
             )
             AppLanguage.EN_US -> base
         }
@@ -569,6 +609,10 @@ data class AppStrings(
             """.trimIndent(),
             guideAndDescription = "Instruction",
             installWidget = "Install widget",
+            soundSavedNotice = "Sound saved. It will appear in Settings when you choose a sound.",
+            deleteSoundTitle = "Delete sound?",
+            deleteSoundMessage = "This sound will be removed from My sounds. This cannot be undone.",
+            deleteSoundAction = "Delete",
         )
 
         private val ru = AppStrings(
@@ -622,6 +666,10 @@ data class AppStrings(
             """.trimIndent(),
             guideAndDescription = "Инструкция",
             installWidget = "Установить виджет",
+            soundSavedNotice = "Звук успешно сохранён. Он появится в настройках при выборе звука.",
+            deleteSoundTitle = "Удалить звук?",
+            deleteSoundMessage = "Этот звук будет удалён из Моих звуков. Отменить действие не получится.",
+            deleteSoundAction = "Удалить",
         )
     }
 }
