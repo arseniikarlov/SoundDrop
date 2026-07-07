@@ -54,9 +54,7 @@ class MainActivity : ComponentActivity() {
                 persistReadPermission(uri)
                 PickedSound(
                     uri = uri.toString(),
-                    displayName = displayNameWithoutAudioExtension(
-                        queryDisplayName(uri.toString()) ?: uri.lastPathSegment ?: "audio"
-                    )
+                    displayName = queryDisplayName(uri.toString()) ?: uri.lastPathSegment ?: "audio"
                 )
             }
 

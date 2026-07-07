@@ -12,9 +12,11 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.webkit.MimeTypeMap
 import com.alfa.shakegroan.data.CustomSound
 import com.alfa.shakegroan.data.displayNameWithoutAudioExtension
 import java.io.File
+import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.Locale
@@ -175,6 +177,29 @@ class AudioStudioManager(
             startUs = selection.startMs * 1000L,
             endUs = selection.endMs * 1000L,
         )
+        return CustomSound(
+            uri = Uri.fromFile(outputFile).toString(),
+            displayName = displayNameWithoutAudioExtension(outputFile.name),
+        )
+    }
+
+    fun importCustomSound(
+        uriString: String,
+        requestedDisplayName: String,
+    ): CustomSound {
+        val sourceUri = Uri.parse(uriString)
+        ensureAudioTrackExists(sourceUri)
+
+        val outputFile = createUniqueSoundFile(
+            displayName = requestedDisplayName,
+            extension = importExtension(sourceUri, requestedDisplayName),
+        )
+        openInputStream(sourceUri).use { input ->
+            outputFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+
         return CustomSound(
             uri = Uri.fromFile(outputFile).toString(),
             displayName = displayNameWithoutAudioExtension(outputFile.name),
@@ -569,16 +594,21 @@ class AudioStudioManager(
         return File(directory, "${prefix}_${System.currentTimeMillis()}$extension")
     }
 
-    private fun createUniqueSoundFile(displayName: String): File {
+    private fun createUniqueSoundFile(
+        displayName: String,
+        extension: String = ".m4a",
+    ): File {
         val directory = File(appContext.filesDir, "custom_sounds").apply { mkdirs() }
-        val normalizedName = normalizeDisplayName(displayName)
+        val normalizedName = normalizeDisplayName(displayName, extension)
         val desired = File(directory, normalizedName)
         if (!desired.exists()) {
             return desired
         }
 
-        val baseName = normalizedName.removeSuffix(".m4a")
-        return File(directory, "${baseName}_${System.currentTimeMillis()}.m4a")
+        val dotIndex = normalizedName.lastIndexOf('.')
+        val baseName = if (dotIndex > 0) normalizedName.substring(0, dotIndex) else normalizedName
+        val suffix = if (dotIndex > 0) normalizedName.substring(dotIndex) else extension
+        return File(directory, "${baseName}_${System.currentTimeMillis()}$suffix")
     }
 
     private fun buildDisplayName(
@@ -589,14 +619,45 @@ class AudioStudioManager(
         return displayNameWithoutAudioExtension(base + suffix)
     }
 
-    private fun normalizeDisplayName(rawLabel: String): String {
-        val withExtension = if (rawLabel.lowercase(Locale.US).endsWith(".m4a")) {
+    private fun normalizeDisplayName(
+        rawLabel: String,
+        extension: String,
+    ): String {
+        val safeExtension = extension.takeIf { it.startsWith(".") } ?: ".$extension"
+        val withExtension = if (hasKnownAudioExtension(rawLabel)) {
             rawLabel
         } else {
-            "$rawLabel.m4a"
+            "$rawLabel$safeExtension"
         }
         val sanitized = withExtension.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
-        return sanitized.ifBlank { "fall_ouch_${System.currentTimeMillis()}.m4a" }
+        return sanitized.ifBlank { "fall_ouch_${System.currentTimeMillis()}$safeExtension" }
+    }
+
+    private fun hasKnownAudioExtension(rawLabel: String): Boolean {
+        val lower = rawLabel.lowercase(Locale.US)
+        return knownAudioExtensions.any { extension -> lower.endsWith(extension) }
+    }
+
+    private fun importExtension(
+        uri: Uri,
+        displayName: String,
+    ): String {
+        val lowerName = displayName.lowercase(Locale.US)
+        knownAudioExtensions.firstOrNull { extension -> lowerName.endsWith(extension) }?.let {
+            return it
+        }
+        val mimeExtension = appContext.contentResolver.getType(uri)
+            ?.let { mimeType -> MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) }
+            ?.takeIf { it.isNotBlank() }
+        return mimeExtension?.let { ".$it" } ?: ".m4a"
+    }
+
+    private fun openInputStream(uri: Uri): java.io.InputStream {
+        if (uri.scheme == "file") {
+            return FileInputStream(uri.path ?: throw IllegalStateException("Не удалось прочитать локальный файл"))
+        }
+        return appContext.contentResolver.openInputStream(uri)
+            ?: throw IllegalStateException("Не удалось открыть выбранный звук")
     }
 
     private fun deleteLocalUri(uriString: String) {
@@ -645,5 +706,18 @@ class AudioStudioManager(
                 stop()
             }
         }
+    }
+
+    private companion object {
+        val knownAudioExtensions = listOf(
+            ".mp3",
+            ".wav",
+            ".m4a",
+            ".aac",
+            ".ogg",
+            ".flac",
+            ".opus",
+            ".amr",
+        )
     }
 }

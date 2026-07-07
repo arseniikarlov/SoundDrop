@@ -170,15 +170,53 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addCustomSounds(newSounds: List<PickedSound>) {
-        addCustomSoundEntries(
-            newSounds.map { sound ->
-                CustomSound(
-                    uri = sound.uri,
-                    displayName = displayNameWithoutAudioExtension(sound.displayName),
+        if (newSounds.isEmpty()) {
+            return
+        }
+
+        viewModelScope.launch {
+            setProcessing(true, "Сохраняю выбранные звуки в Мои звуки")
+            val imported = mutableListOf<CustomSound>()
+            val failedNames = mutableListOf<String>()
+
+            withContext(Dispatchers.IO) {
+                newSounds.forEach { sound ->
+                    runCatching {
+                        audioStudio.importCustomSound(
+                            uriString = sound.uri,
+                            requestedDisplayName = sound.displayName,
+                        )
+                    }.onSuccess { customSound ->
+                        imported += customSound
+                    }.onFailure {
+                        failedNames += sound.displayName
+                    }
+                }
+            }
+
+            if (imported.isNotEmpty()) {
+                val successMessage = if (failedNames.isEmpty()) {
+                    "Добавлено звуков: ${imported.size}"
+                } else {
+                    "Добавлено звуков: ${imported.size}. Не получилось: ${failedNames.joinToString()}"
+                }
+                addCustomSoundEntries(
+                    imported,
+                    successMessage = successMessage,
                 )
-            },
-            successMessage = "Добавлено звуков: ${newSounds.size}",
-        )
+                _uiState.update { current ->
+                    current.copy(isProcessing = false)
+                }
+                showNotice(successMessage)
+            } else {
+                _uiState.update { current ->
+                    current.copy(
+                        isProcessing = false,
+                        statusMessage = "Не удалось сохранить выбранный звук"
+                    )
+                }
+            }
+        }
     }
 
     fun clearCustomSounds() {

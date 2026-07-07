@@ -73,4 +73,22 @@ class AppSettingsStorageMapperTest {
 
         assertEquals(original, restored)
     }
+
+    @Test
+    fun `custom sound codec keeps imported local files`() {
+        val original = listOf(
+            CustomSound(
+                uri = "file:///data/user/0/com.fallouch.myapp/files/custom_sounds/funny_hit.mp3",
+                displayName = "funny_hit.mp3",
+            )
+        )
+
+        val restored = AppSettingsStorageMapper.decodeCustomSounds(
+            AppSettingsStorageMapper.encodeCustomSounds(original)
+        )
+
+        assertEquals(1, restored.size)
+        assertEquals(original.first().uri, restored.first().uri)
+        assertEquals("funny_hit", restored.first().displayName)
+    }
 }
