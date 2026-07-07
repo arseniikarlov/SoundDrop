@@ -175,11 +175,26 @@ fun ShakeGroanApp(
     var stagedSoundKey by rememberSaveable { mutableStateOf<String?>(null) }
     var studioSourceScreen by rememberSaveable { mutableStateOf(AppScreen.UPLOAD_MENU) }
     var guideBackingScreen by rememberSaveable { mutableStateOf(AppScreen.PROFILE) }
+    var returnToSoundPickerAfterAdd by rememberSaveable { mutableStateOf(false) }
+    var lastSeenCustomSoundCount by rememberSaveable { mutableStateOf(uiState.settings.customSounds.size) }
 
     LaunchedEffect(uiState.clipDraft?.sourceUri) {
         if (uiState.clipDraft != null) {
             currentScreen = AppScreen.TRIM
         }
+    }
+
+    LaunchedEffect(uiState.settings.customSounds.size, returnToSoundPickerAfterAdd) {
+        val currentCount = uiState.settings.customSounds.size
+        if (returnToSoundPickerAfterAdd && currentCount > lastSeenCustomSoundCount) {
+            uiState.settings.customSounds.lastOrNull()?.let { savedSound ->
+                stagedSoundKey = assignmentKey(BuiltInSoundCatalog.assignmentFor(savedSound))
+            }
+            returnToSoundPickerAfterAdd = false
+            viewModel.stopDraftPreview()
+            currentScreen = AppScreen.SOUNDS
+        }
+        lastSeenCustomSoundCount = currentCount
     }
 
     fun openTargetPicker(target: SoundTarget) {
@@ -236,7 +251,10 @@ fun ShakeGroanApp(
             )
 
             AppScreen.UPLOAD -> UploadScreen(
-                onOpenMenu = { currentScreen = AppScreen.UPLOAD_MENU }
+                onOpenMenu = {
+                    returnToSoundPickerAfterAdd = false
+                    currentScreen = AppScreen.UPLOAD_MENU
+                }
             )
 
             AppScreen.PROFILE -> ProfileScreen(
@@ -293,18 +311,25 @@ fun ShakeGroanApp(
                     viewModel.stopSoundPreview()
                     viewModel.discardClipDraft()
                     viewModel.clearEditingSoundWaveform()
+                    returnToSoundPickerAfterAdd = true
                     stagedSoundKey = null
                     studioSourceScreen = AppScreen.UPLOAD_MENU
                     currentScreen = AppScreen.UPLOAD_MENU
                 },
                 onDeleteCustomSound = viewModel::deleteCustomSound,
-                onRenameCustomSound = viewModel::renameCustomSound,
+                onSaveEditedCustomSound = viewModel::saveEditedCustomSound,
                 onLoadEditingSoundWaveform = viewModel::loadEditingSoundWaveform,
                 onClearEditingSoundWaveform = viewModel::clearEditingSoundWaveform,
             )
 
             AppScreen.UPLOAD_MENU -> UploadMenuScreen(
-                onBack = { currentScreen = AppScreen.UPLOAD },
+                onBack = {
+                    currentScreen = if (returnToSoundPickerAfterAdd) {
+                        AppScreen.SOUNDS
+                    } else {
+                        AppScreen.UPLOAD
+                    }
+                },
                 onOpenVideo = {
                     studioSourceScreen = AppScreen.UPLOAD_MENU
                     currentScreen = AppScreen.VIDEO_IMPORT
@@ -356,7 +381,11 @@ fun ShakeGroanApp(
                 onStopPreview = viewModel::stopDraftPreview,
                 onSave = { displayName, startMs, endMs ->
                     viewModel.saveDraftToMySounds(displayName, startMs, endMs, appStrings.soundSavedNotice)
-                    currentScreen = AppScreen.UPLOAD
+                    currentScreen = if (returnToSoundPickerAfterAdd) {
+                        AppScreen.UPLOAD_MENU
+                    } else {
+                        AppScreen.UPLOAD
+                    }
                 },
             )
 
@@ -742,7 +771,7 @@ private fun SoundPickerScreen(
     onPreview: (SoundAssignment) -> Unit,
     onOpenUpload: () -> Unit,
     onDeleteCustomSound: (String) -> Unit,
-    onRenameCustomSound: (String, String) -> Unit,
+    onSaveEditedCustomSound: (String, String, Long, Long, Long, String) -> Unit,
     onLoadEditingSoundWaveform: (String) -> Unit,
     onClearEditingSoundWaveform: (String?) -> Unit,
 ) {
@@ -846,9 +875,21 @@ private fun SoundPickerScreen(
                         renameUri = null
                         renameValue = ""
                     },
-                    onSave = {
+                    onSave = { startMs, endMs ->
                         renameUri?.let { uri ->
-                            onRenameCustomSound(uri, renameValue)
+                            val durationMs = if (state.editingSoundWaveformUri == uri) {
+                                state.editingSoundDurationMs
+                            } else {
+                                1000L
+                            }
+                            onSaveEditedCustomSound(
+                                uri,
+                                renameValue,
+                                startMs,
+                                endMs,
+                                durationMs,
+                                strings.soundSavedNotice,
+                            )
                         }
                         onClearEditingSoundWaveform(renameUri)
                         renameUri = null
@@ -1799,7 +1840,7 @@ private fun RenameCard(
     progress: Float,
     onPreview: () -> Unit,
     onCancel: () -> Unit,
-    onSave: () -> Unit,
+    onSave: (Long, Long) -> Unit,
 ) {
     val safeDurationMs = durationMs.coerceAtLeast(1L)
     var startFraction by rememberSaveable(value) { mutableFloatStateOf(0f) }
@@ -1895,7 +1936,7 @@ private fun RenameCard(
                 Text(strings.cancel)
             }
             Button(
-                onClick = onSave,
+                onClick = { onSave(selection.startMs, selection.endMs) },
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppAccent,

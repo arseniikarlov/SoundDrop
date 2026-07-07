@@ -183,21 +183,73 @@ class AudioStudioManager(
         )
     }
 
+    fun saveEditedCustomSound(
+        uriString: String,
+        requestedDisplayName: String,
+        startMs: Long,
+        endMs: Long,
+        durationMs: Long,
+    ): CustomSound {
+        val selection = TrimSelectionNormalizer.normalize(
+            durationMs = durationMs,
+            startMs = startMs,
+            endMs = endMs,
+        )
+        val sourceUri = Uri.parse(uriString)
+        val isFullSelection = selection.startMs <= 50L &&
+            selection.endMs >= durationMs.coerceAtLeast(1L) - 50L
+
+        if (isFullSelection && sourceUri.scheme == "file") {
+            return CustomSound(
+                uri = uriString,
+                displayName = displayNameWithoutAudioExtension(requestedDisplayName),
+            )
+        }
+
+        if (isFullSelection) {
+            return importCustomSound(uriString, requestedDisplayName)
+        }
+
+        val outputFile = createUniqueSoundFile(requestedDisplayName)
+        try {
+            trimAudioTrack(
+                sourceUri = sourceUri,
+                outputFile = outputFile,
+                startUs = selection.startMs * 1000L,
+                endUs = selection.endMs * 1000L,
+            )
+        } catch (error: Exception) {
+            outputFile.delete()
+            throw error
+        }
+
+        return CustomSound(
+            uri = Uri.fromFile(outputFile).toString(),
+            displayName = displayNameWithoutAudioExtension(outputFile.name),
+        )
+    }
+
     fun importCustomSound(
         uriString: String,
         requestedDisplayName: String,
     ): CustomSound {
         val sourceUri = Uri.parse(uriString)
-        ensureAudioTrackExists(sourceUri)
-
         val outputFile = createUniqueSoundFile(
             displayName = requestedDisplayName,
             extension = importExtension(sourceUri, requestedDisplayName),
+            preserveExistingExtension = true,
         )
-        openInputStream(sourceUri).use { input ->
-            outputFile.outputStream().use { output ->
-                input.copyTo(output)
+
+        try {
+            openInputStream(sourceUri).use { input ->
+                outputFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
             }
+            ensureAudioTrackExists(Uri.fromFile(outputFile))
+        } catch (error: Exception) {
+            outputFile.delete()
+            throw error
         }
 
         return CustomSound(
@@ -422,6 +474,10 @@ class AudioStudioManager(
         }
     }
 
+    fun deleteCustomSoundFile(uriString: String) {
+        deleteLocalUri(uriString)
+    }
+
     fun readDurationMs(uriString: String): Long {
         return readDurationMs(Uri.parse(uriString)).coerceAtLeast(1000L)
     }
@@ -597,9 +653,14 @@ class AudioStudioManager(
     private fun createUniqueSoundFile(
         displayName: String,
         extension: String = ".m4a",
+        preserveExistingExtension: Boolean = false,
     ): File {
         val directory = File(appContext.filesDir, "custom_sounds").apply { mkdirs() }
-        val normalizedName = normalizeDisplayName(displayName, extension)
+        val normalizedName = normalizeDisplayName(
+            rawLabel = displayName,
+            extension = extension,
+            preserveExistingExtension = preserveExistingExtension,
+        )
         val desired = File(directory, normalizedName)
         if (!desired.exists()) {
             return desired
@@ -622,12 +683,13 @@ class AudioStudioManager(
     private fun normalizeDisplayName(
         rawLabel: String,
         extension: String,
+        preserveExistingExtension: Boolean,
     ): String {
         val safeExtension = extension.takeIf { it.startsWith(".") } ?: ".$extension"
-        val withExtension = if (hasKnownAudioExtension(rawLabel)) {
+        val withExtension = if (preserveExistingExtension && hasKnownAudioExtension(rawLabel)) {
             rawLabel
         } else {
-            "$rawLabel$safeExtension"
+            "${displayNameWithoutAudioExtension(rawLabel)}$safeExtension"
         }
         val sanitized = withExtension.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
         return sanitized.ifBlank { "fall_ouch_${System.currentTimeMillis()}$safeExtension" }

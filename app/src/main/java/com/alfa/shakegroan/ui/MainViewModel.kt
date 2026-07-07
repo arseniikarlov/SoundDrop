@@ -281,6 +281,80 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun saveEditedCustomSound(
+        uri: String,
+        displayName: String,
+        startMs: Long,
+        endMs: Long,
+        durationMs: Long,
+        successMessage: String,
+    ) {
+        val normalizedName = displayNameWithoutAudioExtension(displayName)
+        if (normalizedName.isBlank()) {
+            _uiState.update { current ->
+                current.copy(statusMessage = "Название не должно быть пустым")
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            setProcessing(true, "Сохраняю изменения звука")
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    audioStudio.saveEditedCustomSound(
+                        uriString = uri,
+                        requestedDisplayName = normalizedName,
+                        startMs = startMs,
+                        endMs = endMs,
+                        durationMs = durationMs,
+                    )
+                }
+            }
+
+            result.onSuccess { editedSound ->
+                updateSettings {
+                    val updatedSounds = customSounds.map { sound ->
+                        if (sound.uri == uri) editedSound else sound
+                    }
+                    val updateAssignment: (SoundAssignment) -> SoundAssignment = { assignment ->
+                        if (assignment.sourceType == SoundSourceType.CUSTOM && assignment.reference == uri) {
+                            assignment.copy(
+                                reference = editedSound.uri,
+                                displayName = editedSound.displayName,
+                            )
+                        } else {
+                            assignment
+                        }
+                    }
+                    copy(
+                        customSounds = updatedSounds,
+                        throwSound = updateAssignment(throwSound),
+                        slapSound = updateAssignment(slapSound),
+                    )
+                }
+                if (editedSound.uri != uri) {
+                    withContext(Dispatchers.IO) {
+                        audioStudio.deleteCustomSoundFile(uri)
+                    }
+                }
+                _uiState.update { current ->
+                    current.copy(
+                        isProcessing = false,
+                        statusMessage = successMessage,
+                    )
+                }
+                showNotice(successMessage)
+            }.onFailure { error ->
+                _uiState.update { current ->
+                    current.copy(
+                        isProcessing = false,
+                        statusMessage = error.message ?: "Не удалось сохранить изменения звука",
+                    )
+                }
+            }
+        }
+    }
+
     fun deleteCustomSound(uri: String) {
         updateSettings {
             val fallbackThrow = if (throwSound.sourceType == SoundSourceType.CUSTOM && throwSound.reference == uri) {
@@ -302,6 +376,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         _uiState.update { current ->
             current.copy(statusMessage = "Звук удалён из Моих звуков")
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            audioStudio.deleteCustomSoundFile(uri)
         }
     }
 
