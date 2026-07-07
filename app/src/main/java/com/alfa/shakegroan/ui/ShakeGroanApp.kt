@@ -2262,7 +2262,7 @@ private fun NoticeBanner(
     onDismiss: () -> Unit,
 ) {
     LaunchedEffect(noticeId) {
-        delay(6_000L)
+        delay(3_500L)
         onDismiss()
     }
 
@@ -2295,6 +2295,17 @@ private fun NoticeBanner(
                     color = AppTextSoft,
                     lineHeight = 20.sp,
                     modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "OK",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppAccent,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onDismiss)
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
                 )
             }
         }
