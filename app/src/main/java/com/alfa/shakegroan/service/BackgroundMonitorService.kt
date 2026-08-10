@@ -121,7 +121,7 @@ class BackgroundMonitorService : Service() {
         val source = soundPlayer.play(currentSettings, eventType)
         lastTriggerLabel = when (eventType) {
             MotionEventType.THROW -> "Последнее событие: падение -> ${assignment.displayName}"
-            MotionEventType.SLAP -> "Последнее событие: шлепок -> ${assignment.displayName}"
+            MotionEventType.SLAP -> "Последнее событие: эффект -> ${assignment.displayName}"
         }
         val statusMessage = when (source) {
             PlaybackSource.BUILT_IN_CLEAN -> "Сработал встроенный файл ${BuiltInSoundCatalog.labelFor(assignment)}"

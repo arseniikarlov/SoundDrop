@@ -39,7 +39,7 @@ data class RecordingUiState(
 data class MainUiState(
     val settings: AppSettings = AppSettings(),
     val lastTriggerLabel: String = "Пока тишина",
-    val statusMessage: String = "Fall Ouch! готов: можно ставить отдельные звуки на падение и шлепок",
+    val statusMessage: String = "Fall Ouch! готов: можно добавлять свои звуки и ставить их на падение",
     val clipDraft: EditableClipDraft? = null,
     val draftWaveform: List<Float> = emptyList(),
     val draftWaveformLoading: Boolean = false,
@@ -400,7 +400,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             current.copy(
                 statusMessage = when (target) {
                     AssignTarget.THROW -> "Поставил `${assignment.displayName}` на падение"
-                    AssignTarget.SLAP -> "Поставил `${assignment.displayName}` на шлепок"
+                    AssignTarget.SLAP -> "Поставил `${assignment.displayName}` на событие"
                     AssignTarget.ALL -> "Поставил `${assignment.displayName}` на оба события"
                 }
             )

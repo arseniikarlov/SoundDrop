@@ -800,8 +800,42 @@ private fun SoundPickerScreen(
 
     var renameUri by rememberSaveable { mutableStateOf<String?>(null) }
     var renameValue by rememberSaveable { mutableStateOf("") }
+    var editStartFraction by rememberSaveable { mutableFloatStateOf(0f) }
+    var editEndFraction by rememberSaveable { mutableFloatStateOf(1f) }
     var pendingDeleteUri by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingDeleteTitle by rememberSaveable { mutableStateOf("") }
+
+    fun clearRenameEditor() {
+        onClearEditingSoundWaveform(renameUri)
+        renameUri = null
+        renameValue = ""
+        editStartFraction = 0f
+        editEndFraction = 1f
+    }
+
+    fun savePendingEdit(startMsOverride: Long? = null, endMsOverride: Long? = null): Boolean {
+        val uri = renameUri ?: return false
+        val durationMs = if (state.editingSoundWaveformUri == uri) {
+            state.editingSoundDurationMs
+        } else {
+            1000L
+        }.coerceAtLeast(1L)
+        val selection = TrimSelectionNormalizer.normalize(
+            durationMs = durationMs,
+            startMs = startMsOverride ?: (editStartFraction * durationMs).roundToInt().toLong(),
+            endMs = endMsOverride ?: (editEndFraction * durationMs).roundToInt().toLong(),
+        )
+        onSaveEditedCustomSound(
+            uri,
+            renameValue,
+            selection.startMs,
+            selection.endMs,
+            durationMs,
+            strings.soundSavedNotice,
+        )
+        clearRenameEditor()
+        return true
+    }
 
     ModalScreenScaffold {
         StickyHeaderBottomSheetPanel(
@@ -809,7 +843,10 @@ private fun SoundPickerScreen(
                 TopActionBar(
                     title = target.label(strings),
                     onCancel = onCancel,
-                    onSave = onSave,
+                    onSave = {
+                        savePendingEdit()
+                        onSave()
+                    },
                     saveEnabled = true,
                 )
             }
@@ -831,6 +868,8 @@ private fun SoundPickerScreen(
                         onEdit = {
                             renameUri = option.assignment.reference
                             renameValue = option.title
+                            editStartFraction = 0f
+                            editEndFraction = 1f
                             onLoadEditingSoundWaveform(option.assignment.reference)
                         },
                         onDelete = {
@@ -865,35 +904,20 @@ private fun SoundPickerScreen(
                             0f
                         }
                     } ?: 0f,
+                    startFraction = editStartFraction,
+                    endFraction = editEndFraction,
+                    onRangeChange = { start, end ->
+                        editStartFraction = start
+                        editEndFraction = end
+                    },
                     onPreview = {
                         renameUri?.let { uri ->
                             onPreview(SoundAssignment(SoundSourceType.CUSTOM, uri, renameValue))
                         }
                     },
-                    onCancel = {
-                        onClearEditingSoundWaveform(renameUri)
-                        renameUri = null
-                        renameValue = ""
-                    },
+                    onCancel = { clearRenameEditor() },
                     onSave = { startMs, endMs ->
-                        renameUri?.let { uri ->
-                            val durationMs = if (state.editingSoundWaveformUri == uri) {
-                                state.editingSoundDurationMs
-                            } else {
-                                1000L
-                            }
-                            onSaveEditedCustomSound(
-                                uri,
-                                renameValue,
-                                startMs,
-                                endMs,
-                                durationMs,
-                                strings.soundSavedNotice,
-                            )
-                        }
-                        onClearEditingSoundWaveform(renameUri)
-                        renameUri = null
-                        renameValue = ""
+                        savePendingEdit(startMs, endMs)
                     }
                 )
             }
@@ -909,9 +933,7 @@ private fun SoundPickerScreen(
                     onConfirm = {
                         onDeleteCustomSound(uri)
                         if (renameUri == uri) {
-                            onClearEditingSoundWaveform(renameUri)
-                            renameUri = null
-                            renameValue = ""
+                            clearRenameEditor()
                         }
                         pendingDeleteUri = null
                         pendingDeleteTitle = ""
@@ -1838,13 +1860,14 @@ private fun RenameCard(
     loading: Boolean,
     playing: Boolean,
     progress: Float,
+    startFraction: Float,
+    endFraction: Float,
+    onRangeChange: (Float, Float) -> Unit,
     onPreview: () -> Unit,
     onCancel: () -> Unit,
     onSave: (Long, Long) -> Unit,
 ) {
     val safeDurationMs = durationMs.coerceAtLeast(1L)
-    var startFraction by rememberSaveable(value) { mutableFloatStateOf(0f) }
-    var endFraction by rememberSaveable(value) { mutableFloatStateOf(1f) }
     val selection = remember(startFraction, endFraction, safeDurationMs) {
         TrimSelectionNormalizer.normalize(
             durationMs = safeDurationMs,
@@ -1915,8 +1938,10 @@ private fun RenameCard(
                     startMs = (range.start * safeDurationMs).roundToInt().toLong(),
                     endMs = (range.endInclusive * safeDurationMs).roundToInt().toLong(),
                 )
-                startFraction = normalized.startMs / safeDurationMs.toFloat()
-                endFraction = normalized.endMs / safeDurationMs.toFloat()
+                onRangeChange(
+                    normalized.startMs / safeDurationMs.toFloat(),
+                    normalized.endMs / safeDurationMs.toFloat(),
+                )
             },
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,
